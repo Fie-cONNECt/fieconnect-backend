@@ -10,18 +10,16 @@ import { getAuthContext } from './middleware/auth';
 
 dotenv.config();
 
+const app = express();
+const PORT = process.env.PORT || 4000;
+
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+});
+
 const startServer = async () => {
-  // Connect database
   await connectDB();
-
-  const app = express();
-  const PORT = process.env.PORT || 4000;
-
-  const server = new ApolloServer({
-    typeDefs,
-    resolvers,
-  });
-
   await server.start();
 
   app.use(cors());
@@ -34,11 +32,16 @@ const startServer = async () => {
     }),
   );
 
-  app.listen(PORT, () => {
-    console.log(`Server is running at http://localhost:${PORT}/graphql`);
-  });
+  // Only listen when running locally, Vercel will handle serverless execution
+  if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+      console.log(`Server is running at http://localhost:${PORT}/graphql`);
+    });
+  }
 };
 
 startServer().catch((err) => {
   console.error('Failed to start server:', err);
 });
+
+export default app;
