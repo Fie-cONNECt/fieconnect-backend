@@ -30,12 +30,12 @@ export const resolvers: Resolvers = {
   },
   Mutation: {
     register: async (_, { firstName, lastName, email, password, userType, phone }, context) => {
-      const existingUser = await User.findOne({ email });
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
       if (existingUser) {
         throw new Error('User already exists with this email');
       }
 
-      const user = new User({ firstName, lastName, email, password, userType, phone });
+      const user = new User({ firstName, lastName, email: email.toLowerCase(), password, userType, phone });
       await user.save();
 
       const token = generateToken(user.id, user.email);
@@ -62,7 +62,7 @@ export const resolvers: Resolvers = {
       };
     },
     login: async (_, { email, password }, context) => {
-      const user = await User.findOne({ email });
+      const user = await User.findOne({ email: email.toLowerCase() });
       if (!user) {
         throw new Error('Invalid email or password');
       }
