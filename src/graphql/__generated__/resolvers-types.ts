@@ -26,6 +26,7 @@ export type AuthPayload = {
 export type Mutation = {
   __typename?: 'Mutation';
   login: AuthPayload;
+  logout: Scalars['Boolean']['output'];
   register: AuthPayload;
 };
 
@@ -162,6 +163,7 @@ export type AuthPayloadResolvers<ContextType = AuthContext, ParentType extends R
 
 export type MutationResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
   login?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationLoginArgs, 'email' | 'password'>>;
+  logout?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   register?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationRegisterArgs, 'email' | 'firstName' | 'lastName' | 'password' | 'phone' | 'userType'>>;
 }>;
 

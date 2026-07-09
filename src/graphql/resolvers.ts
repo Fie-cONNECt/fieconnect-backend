@@ -29,7 +29,7 @@ export const resolvers: Resolvers = {
     },
   },
   Mutation: {
-    register: async (_, { firstName, lastName, email, password, userType, phone }) => {
+    register: async (_, { firstName, lastName, email, password, userType, phone }, context) => {
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         throw new Error('User already exists with this email');
@@ -39,6 +39,13 @@ export const resolvers: Resolvers = {
       await user.save();
 
       const token = generateToken(user.id, user.email);
+
+      if (context.res) {
+        context.res.setHeader(
+          'Set-Cookie',
+          `token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
+        );
+      }
 
       return {
         token,
@@ -54,7 +61,7 @@ export const resolvers: Resolvers = {
         },
       };
     },
-    login: async (_, { email, password }) => {
+    login: async (_, { email, password }, context) => {
       const user = await User.findOne({ email });
       if (!user) {
         throw new Error('Invalid email or password');
@@ -66,6 +73,13 @@ export const resolvers: Resolvers = {
       }
 
       const token = generateToken(user.id, user.email);
+
+      if (context.res) {
+        context.res.setHeader(
+          'Set-Cookie',
+          `token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
+        );
+      }
 
       return {
         token,
@@ -80,6 +94,15 @@ export const resolvers: Resolvers = {
           updatedAt: user.updatedAt.toISOString(),
         },
       };
+    },
+    logout: async (_, __, context) => {
+      if (context.res) {
+        context.res.setHeader(
+          'Set-Cookie',
+          `token=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
+        );
+      }
+      return true;
     },
   },
 };

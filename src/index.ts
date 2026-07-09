@@ -22,13 +22,21 @@ const startServer = async () => {
   await connectDB();
   await server.start();
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: 'http://localhost:3000',
+      credentials: true,
+    }),
+  );
   app.use(express.json());
 
   app.use(
     '/graphql',
     expressMiddleware(server, {
-      context: async ({ req }) => getAuthContext(req),
+      context: async ({ req, res }) => ({
+        ...getAuthContext(req),
+        res,
+      }),
     }),
   );
 
