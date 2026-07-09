@@ -35,7 +35,14 @@ export const resolvers: Resolvers = {
         throw new Error('User already exists with this email');
       }
 
-      const user = new User({ firstName, lastName, email: email.toLowerCase(), password, userType, phone });
+      const user = new User({
+        firstName,
+        lastName,
+        email: email.toLowerCase(),
+        password,
+        userType,
+        phone,
+      });
       await user.save();
 
       const token = generateToken(user.id, user.email);
@@ -43,7 +50,7 @@ export const resolvers: Resolvers = {
       if (context.res) {
         context.res.setHeader(
           'Set-Cookie',
-          `token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
+          `token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
         );
       }
 
@@ -77,7 +84,7 @@ export const resolvers: Resolvers = {
       if (context.res) {
         context.res.setHeader(
           'Set-Cookie',
-          `token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
+          `token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
         );
       }
 
@@ -99,7 +106,7 @@ export const resolvers: Resolvers = {
       if (context.res) {
         context.res.setHeader(
           'Set-Cookie',
-          `token=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
+          `token=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
         );
       }
       return true;

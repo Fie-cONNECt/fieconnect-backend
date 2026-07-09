@@ -24,7 +24,7 @@ describe('User Model Password Hashing', () => {
 
     if (!hashPasswordHook) {
       throw new Error(
-        `hashPassword pre-save hook not found. Available hooks: ${saveHooks.map((h: any) => h.fn.name).join(', ')}`
+        `hashPassword pre-save hook not found. Available hooks: ${saveHooks.map((h: any) => h.fn.name).join(', ')}`,
       );
     }
 
