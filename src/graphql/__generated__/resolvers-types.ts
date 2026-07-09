@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { AuthContext } from '../../../middleware/auth';
+import { AuthContext } from '../../middleware/auth';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -29,6 +29,7 @@ export type AuthPayload = {
 export type Mutation = {
   __typename?: 'Mutation';
   login: AuthPayload;
+  logout: Scalars['Boolean']['output'];
   register: AuthPayload;
 };
 
@@ -39,8 +40,11 @@ export type MutationLoginArgs = {
 
 export type MutationRegisterArgs = {
   email: Scalars['String']['input'];
-  name: Scalars['String']['input'];
+  firstName: Scalars['String']['input'];
+  lastName: Scalars['String']['input'];
   password: Scalars['String']['input'];
+  phone: Scalars['String']['input'];
+  userType: Scalars['String']['input'];
 };
 
 export type Query = {
@@ -52,9 +56,12 @@ export type User = {
   __typename?: 'User';
   createdAt: Scalars['String']['output'];
   email: Scalars['String']['output'];
+  firstName: Scalars['String']['output'];
   id: Scalars['ID']['output'];
-  name: Scalars['String']['output'];
+  lastName: Scalars['String']['output'];
+  phone: Scalars['String']['output'];
   updatedAt: Scalars['String']['output'];
+  userType: Scalars['String']['output'];
 };
 
 export type WithIndex<TObject> = TObject & Record<string, any>;
@@ -183,11 +190,15 @@ export type MutationResolvers<
     ContextType,
     RequireFields<MutationLoginArgs, 'email' | 'password'>
   >;
+  logout?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   register?: Resolver<
     ResolversTypes['AuthPayload'],
     ParentType,
     ContextType,
-    RequireFields<MutationRegisterArgs, 'email' | 'name' | 'password'>
+    RequireFields<
+      MutationRegisterArgs,
+      'email' | 'firstName' | 'lastName' | 'password' | 'phone' | 'userType'
+    >
   >;
 }>;
 
@@ -204,9 +215,12 @@ export type UserResolvers<
 > = ResolversObject<{
   createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  firstName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  lastName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  phone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  userType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

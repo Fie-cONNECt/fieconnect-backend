@@ -3,9 +3,12 @@ import bcrypt from 'bcryptjs';
 
 const userSchema = new Schema(
   {
-    name: { type: String, required: true },
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
+    userType: { type: String, enum: ['TENANT', 'LANDLORD'], default: 'TENANT', required: true },
+    phone: { type: String, required: true },
   },
   {
     timestamps: true,
@@ -13,7 +16,7 @@ const userSchema = new Schema(
 );
 
 // Hash password before saving
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function hashPassword(next) {
   if (!this.isModified('password')) return next();
   try {
     const salt = await bcrypt.genSalt(10);
