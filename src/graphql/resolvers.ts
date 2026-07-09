@@ -20,19 +20,21 @@ export const resolvers: Resolvers = {
         id: user.id,
         name: user.name,
         email: user.email,
+        userType: user.userType,
+        phone: user.phone,
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       };
     },
   },
   Mutation: {
-    register: async (_, { name, email, password }) => {
+    register: async (_, { name, email, password, userType, phone }) => {
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         throw new Error('User already exists with this email');
       }
 
-      const user = new User({ name, email, password });
+      const user = new User({ name, email, password, userType, phone });
       await user.save();
 
       const token = generateToken(user.id, user.email);
@@ -43,6 +45,8 @@ export const resolvers: Resolvers = {
           id: user.id,
           name: user.name,
           email: user.email,
+          userType: user.userType,
+          phone: user.phone,
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString(),
         },
@@ -67,6 +71,8 @@ export const resolvers: Resolvers = {
           id: user.id,
           name: user.name,
           email: user.email,
+          userType: user.userType,
+          phone: user.phone,
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString(),
         },

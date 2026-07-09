@@ -6,6 +6,8 @@ const userSchema = new Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
+    userType: { type: String, enum: ['TENANT', 'LANDLORD'], default: 'TENANT', required: true },
+    phone: { type: String, required: true },
   },
   {
     timestamps: true,

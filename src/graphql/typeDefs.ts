@@ -3,6 +3,8 @@ export const typeDefs = `#graphql
     id: ID!
     name: String!
     email: String!
+    userType: String!
+    phone: String!
     createdAt: String!
     updatedAt: String!
   }
@@ -17,7 +19,7 @@ export const typeDefs = `#graphql
   }
 
   type Mutation {
-    register(name: String!, email: String!, password: String!): AuthPayload!
+    register(name: String!, email: String!, password: String!, userType: String!, phone: String!): AuthPayload!
     login(email: String!, password: String!): AuthPayload!
   }
 `;
