@@ -1,4 +1,5 @@
 import { User } from '../models/User';
+import { Property } from '../models/Property';
 import jwt from 'jsonwebtoken';
 import { Resolvers } from './__generated__/resolvers-types';
 
@@ -26,6 +27,41 @@ export const resolvers: Resolvers = {
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       };
+    },
+    myProperties: async (_, __, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const properties = await Property.find({ landlord: context.userId });
+      return properties.map((prop) => ({
+        id: prop.id,
+        title: prop.title,
+        type: prop.type,
+        location: prop.location,
+        region: prop.region,
+        district: prop.district,
+        price: prop.price,
+        verified: prop.verified,
+        bedrooms: prop.bedrooms,
+        bathrooms: prop.bathrooms,
+        size: prop.size,
+        parking: prop.parking,
+        about: prop.about,
+        amenities: prop.amenities,
+        lat: prop.lat,
+        lng: prop.lng,
+        image: prop.image,
+        images: {
+          main: prop.images?.main || prop.image,
+          kitchen: prop.images?.kitchen || '',
+          bedroom: prop.images?.bedroom || '',
+          bathroom: prop.images?.bathroom || '',
+        },
+        agreementUrl: prop.agreementUrl || null,
+        landlord: prop.landlord as any,
+        createdAt: (prop as any).createdAt.toISOString(),
+        updatedAt: (prop as any).updatedAt.toISOString(),
+      }));
     },
   },
   Mutation: {
@@ -110,6 +146,101 @@ export const resolvers: Resolvers = {
         );
       }
       return true;
+    },
+    createProperty: async (_, { input }, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+
+      let lat = 5.5786;
+      let lng = -0.1704;
+      if (input.region === 'Ashanti') {
+        lat = 6.6666;
+        lng = -1.6244;
+      } else if (input.region === 'Western') {
+        lat = 4.9016;
+        lng = -1.7831;
+      } else if (input.region === 'Eastern') {
+        lat = 6.0944;
+        lng = -0.2591;
+      }
+
+      const property = new Property({
+        title: input.title,
+        type: input.type,
+        location: input.location,
+        region: input.region,
+        district: input.district,
+        price: input.price,
+        bedrooms: input.bedrooms,
+        bathrooms: input.bathrooms,
+        size: input.size,
+        parking: input.parking,
+        about: input.about,
+        amenities: input.amenities,
+        lat,
+        lng,
+        image: input.image,
+        images: {
+          main: input.image,
+          kitchen: input.kitchenImage,
+          bedroom: input.bedroomImage,
+          bathroom: input.bathroomImage,
+        },
+        agreementUrl: input.agreementUrl,
+        landlord: context.userId,
+      });
+
+      await property.save();
+
+      return {
+        id: property.id,
+        title: property.title,
+        type: property.type,
+        location: property.location,
+        region: property.region,
+        district: property.district,
+        price: property.price,
+        verified: property.verified,
+        bedrooms: property.bedrooms,
+        bathrooms: property.bathrooms,
+        size: property.size,
+        parking: property.parking,
+        about: property.about,
+        amenities: property.amenities,
+        lat: property.lat,
+        lng: property.lng,
+        image: property.image,
+        images: {
+          main: property.images?.main || property.image,
+          kitchen: property.images?.kitchen || '',
+          bedroom: property.images?.bedroom || '',
+          bathroom: property.images?.bathroom || '',
+        },
+        agreementUrl: property.agreementUrl || null,
+        landlord: property.landlord as any,
+        createdAt: (property as any).createdAt.toISOString(),
+        updatedAt: (property as any).updatedAt.toISOString(),
+      };
+    },
+  },
+  Property: {
+    landlord: async (parent) => {
+      const landlordId = (parent as any).landlord;
+      const user = await User.findById(landlordId);
+      if (!user) {
+        throw new Error('Landlord user not found');
+      }
+      return {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        userType: user.userType,
+        phone: user.phone,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
+      };
     },
   },
 };
