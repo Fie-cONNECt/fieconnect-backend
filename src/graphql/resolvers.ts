@@ -464,7 +464,7 @@ export const resolvers: Resolvers = {
   Application: {
     property: async (parent) => {
       const propId = (parent as any).property;
-      if (propId && typeof propId === 'object') {
+      if (propId && typeof propId === 'object' && 'title' in propId) {
         return propId;
       }
       const prop = await Property.findById(propId).populate('landlord');
