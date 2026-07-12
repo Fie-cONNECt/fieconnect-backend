@@ -69,10 +69,38 @@ export const typeDefs = `#graphql
     agreementUrl: String
   }
 
+  type Application {
+    id: ID!
+    property: Property!
+    tenant: User!
+    nationalIdUrl: String!
+    supportingDocsUrl: String
+    employerName: String!
+    jobTitle: String!
+    monthlyIncome: String!
+    lengthOfEmployment: String!
+    personalStatement: String!
+    status: String!
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  input CreateApplicationInput {
+    propertyId: ID!
+    nationalIdUrl: String!
+    supportingDocsUrl: String
+    employerName: String!
+    jobTitle: String!
+    monthlyIncome: String!
+    lengthOfEmployment: String!
+    personalStatement: String!
+  }
+
   type Query {
     me: User
     myProperties: [Property!]!
     property(id: ID!): Property
+    myApplications: [Application!]!
   }
 
   type Mutation {
@@ -81,5 +109,6 @@ export const typeDefs = `#graphql
     logout: Boolean!
     createProperty(input: CreatePropertyInput!): Property!
     toggleSaveProperty(propertyId: ID!): User!
+    createApplication(input: CreateApplicationInput!): Application!
   }
 `;

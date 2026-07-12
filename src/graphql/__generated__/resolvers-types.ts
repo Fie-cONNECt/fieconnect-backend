@@ -17,10 +17,38 @@ export type Scalars = {
   Float: { input: number; output: number; }
 };
 
+export type Application = {
+  __typename?: 'Application';
+  createdAt: Scalars['String']['output'];
+  employerName: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  jobTitle: Scalars['String']['output'];
+  lengthOfEmployment: Scalars['String']['output'];
+  monthlyIncome: Scalars['String']['output'];
+  nationalIdUrl: Scalars['String']['output'];
+  personalStatement: Scalars['String']['output'];
+  property: Property;
+  status: Scalars['String']['output'];
+  supportingDocsUrl?: Maybe<Scalars['String']['output']>;
+  tenant: User;
+  updatedAt: Scalars['String']['output'];
+};
+
 export type AuthPayload = {
   __typename?: 'AuthPayload';
   token: Scalars['String']['output'];
   user: User;
+};
+
+export type CreateApplicationInput = {
+  employerName: Scalars['String']['input'];
+  jobTitle: Scalars['String']['input'];
+  lengthOfEmployment: Scalars['String']['input'];
+  monthlyIncome: Scalars['String']['input'];
+  nationalIdUrl: Scalars['String']['input'];
+  personalStatement: Scalars['String']['input'];
+  propertyId: Scalars['ID']['input'];
+  supportingDocsUrl?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type CreatePropertyInput = {
@@ -45,11 +73,17 @@ export type CreatePropertyInput = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  createApplication: Application;
   createProperty: Property;
   login: AuthPayload;
   logout: Scalars['Boolean']['output'];
   register: AuthPayload;
   toggleSaveProperty: User;
+};
+
+
+export type MutationCreateApplicationArgs = {
+  input: CreateApplicationInput;
 };
 
 
@@ -116,6 +150,7 @@ export type PropertyImages = {
 export type Query = {
   __typename?: 'Query';
   me?: Maybe<User>;
+  myApplications: Array<Application>;
   myProperties: Array<Property>;
   property?: Maybe<Property>;
 };
@@ -210,8 +245,10 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
+  Application: ResolverTypeWrapper<Application>;
   AuthPayload: ResolverTypeWrapper<AuthPayload>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  CreateApplicationInput: CreateApplicationInput;
   CreatePropertyInput: CreatePropertyInput;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
@@ -225,8 +262,10 @@ export type ResolversTypes = ResolversObject<{
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
+  Application: Application;
   AuthPayload: AuthPayload;
   Boolean: Scalars['Boolean']['output'];
+  CreateApplicationInput: CreateApplicationInput;
   CreatePropertyInput: CreatePropertyInput;
   Float: Scalars['Float']['output'];
   ID: Scalars['ID']['output'];
@@ -238,6 +277,23 @@ export type ResolversParentTypes = ResolversObject<{
   User: User;
 }>;
 
+export type ApplicationResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['Application'] = ResolversParentTypes['Application']> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  employerName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  jobTitle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  lengthOfEmployment?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  monthlyIncome?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  nationalIdUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  personalStatement?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  property?: Resolver<ResolversTypes['Property'], ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  supportingDocsUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  tenant?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type AuthPayloadResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['AuthPayload'] = ResolversParentTypes['AuthPayload']> = ResolversObject<{
   token?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
@@ -245,6 +301,7 @@ export type AuthPayloadResolvers<ContextType = AuthContext, ParentType extends R
 }>;
 
 export type MutationResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
+  createApplication?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationCreateApplicationArgs, 'input'>>;
   createProperty?: Resolver<ResolversTypes['Property'], ParentType, ContextType, RequireFields<MutationCreatePropertyArgs, 'input'>>;
   login?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationLoginArgs, 'email' | 'password'>>;
   logout?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -289,6 +346,7 @@ export type PropertyImagesResolvers<ContextType = AuthContext, ParentType extend
 
 export type QueryResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  myApplications?: Resolver<Array<ResolversTypes['Application']>, ParentType, ContextType>;
   myProperties?: Resolver<Array<ResolversTypes['Property']>, ParentType, ContextType>;
   property?: Resolver<Maybe<ResolversTypes['Property']>, ParentType, ContextType, RequireFields<QueryPropertyArgs, 'id'>>;
 }>;
@@ -307,6 +365,7 @@ export type UserResolvers<ContextType = AuthContext, ParentType extends Resolver
 }>;
 
 export type Resolvers<ContextType = AuthContext> = ResolversObject<{
+  Application?: ApplicationResolvers<ContextType>;
   AuthPayload?: AuthPayloadResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Property?: PropertyResolvers<ContextType>;

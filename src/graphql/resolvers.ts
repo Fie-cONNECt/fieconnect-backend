@@ -1,5 +1,6 @@
 import { User } from '../models/User';
 import { Property } from '../models/Property';
+import { Application } from '../models/Application';
 import jwt from 'jsonwebtoken';
 import { Resolvers } from './__generated__/resolvers-types';
 import mongoose from 'mongoose';
@@ -124,6 +125,27 @@ export const resolvers: Resolvers = {
         createdAt: (prop as any).createdAt.toISOString(),
         updatedAt: (prop as any).updatedAt.toISOString(),
       };
+    },
+    myApplications: async (_, __, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const apps = await Application.find({ tenant: context.userId });
+      return apps.map((app) => ({
+        id: app.id,
+        property: app.property as any,
+        tenant: app.tenant as any,
+        nationalIdUrl: app.nationalIdUrl,
+        supportingDocsUrl: app.supportingDocsUrl || null,
+        employerName: app.employerName,
+        jobTitle: app.jobTitle,
+        monthlyIncome: app.monthlyIncome,
+        lengthOfEmployment: app.lengthOfEmployment,
+        personalStatement: app.personalStatement,
+        status: app.status,
+        createdAt: (app as any).createdAt.toISOString(),
+        updatedAt: (app as any).updatedAt.toISOString(),
+      }));
     },
   },
   Mutation: {
@@ -323,6 +345,47 @@ export const resolvers: Resolvers = {
         updatedAt: user.updatedAt.toISOString(),
       };
     },
+    createApplication: async (_, { input }, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+
+      const propertyExists = await Property.exists({ _id: input.propertyId });
+      if (!propertyExists) {
+        throw new Error('Property not found');
+      }
+
+      const application = new Application({
+        property: input.propertyId,
+        tenant: context.userId,
+        nationalIdUrl: input.nationalIdUrl,
+        supportingDocsUrl: input.supportingDocsUrl,
+        employerName: input.employerName,
+        jobTitle: input.jobTitle,
+        monthlyIncome: input.monthlyIncome,
+        lengthOfEmployment: input.lengthOfEmployment,
+        personalStatement: input.personalStatement,
+        status: 'PENDING',
+      });
+
+      await application.save();
+
+      return {
+        id: application.id,
+        property: application.property as any,
+        tenant: application.tenant as any,
+        nationalIdUrl: application.nationalIdUrl,
+        supportingDocsUrl: application.supportingDocsUrl || null,
+        employerName: application.employerName,
+        jobTitle: application.jobTitle,
+        monthlyIncome: application.monthlyIncome,
+        lengthOfEmployment: application.lengthOfEmployment,
+        personalStatement: application.personalStatement,
+        status: application.status,
+        createdAt: (application as any).createdAt.toISOString(),
+        updatedAt: (application as any).updatedAt.toISOString(),
+      };
+    },
   },
   Property: {
     landlord: async (parent) => {
@@ -396,6 +459,82 @@ export const resolvers: Resolvers = {
         createdAt: (prop as any).createdAt.toISOString(),
         updatedAt: (prop as any).updatedAt.toISOString(),
       }));
+    },
+  },
+  Application: {
+    property: async (parent) => {
+      const propId = (parent as any).property;
+      if (propId && typeof propId === 'object') {
+        return propId;
+      }
+      const prop = await Property.findById(propId).populate('landlord');
+      if (!prop) {
+        throw new Error('Property not found');
+      }
+      return {
+        id: prop.id,
+        title: prop.title,
+        type: prop.type,
+        location: prop.location,
+        region: prop.region,
+        district: prop.district,
+        price: prop.price,
+        verified: prop.verified,
+        bedrooms: prop.bedrooms,
+        bathrooms: prop.bathrooms,
+        size: prop.size,
+        parking: prop.parking,
+        about: prop.about,
+        amenities: prop.amenities,
+        lat: prop.lat,
+        lng: prop.lng,
+        image: prop.image,
+        images: {
+          main: prop.images?.main || prop.image,
+          kitchen: prop.images?.kitchen || '',
+          bedroom: prop.images?.bedroom || '',
+          bathroom: prop.images?.bathroom || '',
+        },
+        agreementUrl: prop.agreementUrl || null,
+        landlord: prop.landlord as any,
+        createdAt: (prop as any).createdAt.toISOString(),
+        updatedAt: (prop as any).updatedAt.toISOString(),
+      };
+    },
+    tenant: async (parent) => {
+      const tenantVal = (parent as any).tenant;
+      if (tenantVal && typeof tenantVal === 'object') {
+        const id = tenantVal.id || tenantVal._id?.toString();
+        if (id && tenantVal.firstName) {
+          return {
+            id,
+            firstName: tenantVal.firstName,
+            lastName: tenantVal.lastName,
+            email: tenantVal.email,
+            userType: tenantVal.userType,
+            phone: tenantVal.phone,
+            savedProperties: [],
+            createdAt: typeof tenantVal.createdAt === 'string' ? tenantVal.createdAt : (tenantVal.createdAt?.toISOString() || new Date().toISOString()),
+            updatedAt: typeof tenantVal.updatedAt === 'string' ? tenantVal.updatedAt : (tenantVal.updatedAt?.toISOString() || new Date().toISOString()),
+          };
+        }
+      }
+
+      const user = await User.findById(tenantVal);
+      if (!user) {
+        throw new Error('Tenant user not found');
+      }
+      return {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        userType: user.userType,
+        phone: user.phone,
+        savedProperties: [],
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
+      };
     },
   },
 };
