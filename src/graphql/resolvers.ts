@@ -2,6 +2,7 @@ import { User } from '../models/User';
 import { Property } from '../models/Property';
 import jwt from 'jsonwebtoken';
 import { Resolvers } from './__generated__/resolvers-types';
+import mongoose from 'mongoose';
 
 const generateToken = (userId: string, email: string) => {
   return jwt.sign({ userId, email }, process.env.JWT_SECRET || 'fallback_secret', {
@@ -62,6 +63,64 @@ export const resolvers: Resolvers = {
         createdAt: (prop as any).createdAt.toISOString(),
         updatedAt: (prop as any).updatedAt.toISOString(),
       }));
+    },
+    property: async (_, { id }) => {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return null;
+      }
+      const prop = await Property.findById(id).populate('landlord');
+      if (!prop) return null;
+      const landlord = prop.landlord as any;
+      return {
+        id: prop.id,
+        title: prop.title,
+        type: prop.type,
+        location: prop.location,
+        region: prop.region,
+        district: prop.district,
+        price: prop.price,
+        verified: prop.verified,
+        bedrooms: prop.bedrooms,
+        bathrooms: prop.bathrooms,
+        size: prop.size,
+        parking: prop.parking,
+        about: prop.about,
+        amenities: prop.amenities,
+        mapDescription: (prop as any).mapDescription || null,
+        lat: prop.lat,
+        lng: prop.lng,
+        image: prop.image,
+        images: {
+          main: prop.images?.main || prop.image,
+          kitchen: prop.images?.kitchen || '',
+          bedroom: prop.images?.bedroom || '',
+          bathroom: prop.images?.bathroom || '',
+        },
+        agreementUrl: prop.agreementUrl || null,
+        landlord: landlord
+          ? {
+              id: landlord._id?.toString() || landlord.id,
+              firstName: landlord.firstName,
+              lastName: landlord.lastName,
+              email: landlord.email,
+              userType: landlord.userType,
+              phone: landlord.phone,
+              createdAt: landlord.createdAt?.toISOString() || new Date().toISOString(),
+              updatedAt: landlord.updatedAt?.toISOString() || new Date().toISOString(),
+            }
+          : {
+              id: '',
+              firstName: 'Unknown',
+              lastName: 'Landlord',
+              email: '',
+              userType: 'landlord',
+              phone: '',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+        createdAt: (prop as any).createdAt.toISOString(),
+        updatedAt: (prop as any).updatedAt.toISOString(),
+      };
     },
   },
   Mutation: {
@@ -226,8 +285,24 @@ export const resolvers: Resolvers = {
   },
   Property: {
     landlord: async (parent) => {
-      const landlordId = (parent as any).landlord;
-      const user = await User.findById(landlordId);
+      const landlordVal = (parent as any).landlord;
+      if (landlordVal && typeof landlordVal === 'object') {
+        const id = landlordVal.id || landlordVal._id?.toString();
+        if (id && landlordVal.firstName) {
+          return {
+            id,
+            firstName: landlordVal.firstName,
+            lastName: landlordVal.lastName,
+            email: landlordVal.email,
+            userType: landlordVal.userType,
+            phone: landlordVal.phone,
+            createdAt: typeof landlordVal.createdAt === 'string' ? landlordVal.createdAt : (landlordVal.createdAt?.toISOString() || new Date().toISOString()),
+            updatedAt: typeof landlordVal.updatedAt === 'string' ? landlordVal.updatedAt : (landlordVal.updatedAt?.toISOString() || new Date().toISOString()),
+          };
+        }
+      }
+
+      const user = await User.findById(landlordVal);
       if (!user) {
         throw new Error('Landlord user not found');
       }

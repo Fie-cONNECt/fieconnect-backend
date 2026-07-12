@@ -71,6 +71,7 @@ export const typeDefs = `#graphql
   type Query {
     me: User
     myProperties: [Property!]!
+    property(id: ID!): Property
   }
 
   type Mutation {

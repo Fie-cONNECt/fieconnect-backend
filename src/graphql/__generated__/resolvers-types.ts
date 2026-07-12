@@ -111,6 +111,12 @@ export type Query = {
   __typename?: 'Query';
   me?: Maybe<User>;
   myProperties: Array<Property>;
+  property?: Maybe<Property>;
+};
+
+
+export type QueryPropertyArgs = {
+  id: Scalars['ID']['input'];
 };
 
 export type User = {
@@ -276,6 +282,7 @@ export type PropertyImagesResolvers<ContextType = AuthContext, ParentType extend
 export type QueryResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   myProperties?: Resolver<Array<ResolversTypes['Property']>, ParentType, ContextType>;
+  property?: Resolver<Maybe<ResolversTypes['Property']>, ParentType, ContextType, RequireFields<QueryPropertyArgs, 'id'>>;
 }>;
 
 export type UserResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
