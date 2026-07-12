@@ -28,9 +28,11 @@ export const resolvers: Resolvers = {
         email: user.email,
         userType: user.userType,
         phone: user.phone,
+        avatarUrl: (user as any).avatarUrl || null,
+        bio: (user as any).bio || null,
         savedProperties: [],
-        createdAt: user.createdAt.toISOString(),
-        updatedAt: user.updatedAt.toISOString(),
+        createdAt: (user as any).createdAt.toISOString(),
+        updatedAt: (user as any).updatedAt.toISOString(),
       };
     },
     myProperties: async (_, __, context) => {
@@ -440,6 +442,35 @@ export const resolvers: Resolvers = {
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString(),
         },
+      };
+    },
+    updateProfile: async (_: any, { firstName, lastName, phone, bio, avatarUrl }: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const user = await User.findById(context.userId);
+      if (!user) throw new Error('User not found');
+
+      if (firstName !== undefined) user.firstName = firstName;
+      if (lastName !== undefined) user.lastName = lastName;
+      if (phone !== undefined) user.phone = phone;
+      if (bio !== undefined) (user as any).bio = bio;
+      if (avatarUrl !== undefined) (user as any).avatarUrl = avatarUrl;
+
+      await user.save();
+
+      return {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        userType: user.userType,
+        phone: user.phone,
+        avatarUrl: (user as any).avatarUrl || null,
+        bio: (user as any).bio || null,
+        savedProperties: [],
+        createdAt: (user as any).createdAt.toISOString(),
+        updatedAt: (user as any).updatedAt.toISOString(),
       };
     },
     logout: async (_, __, context) => {

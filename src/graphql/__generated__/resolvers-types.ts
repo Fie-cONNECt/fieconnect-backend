@@ -116,6 +116,7 @@ export type Mutation = {
   submitSignedAgreement: Application;
   toggleSaveProperty: User;
   updateApplicationStatus: Application;
+  updateProfile: User;
 };
 
 
@@ -203,6 +204,15 @@ export type MutationUpdateApplicationStatusArgs = {
   status: Scalars['String']['input'];
 };
 
+
+export type MutationUpdateProfileArgs = {
+  avatarUrl?: InputMaybe<Scalars['String']['input']>;
+  bio?: InputMaybe<Scalars['String']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  phone?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type Notification = {
   __typename?: 'Notification';
   createdAt: Scalars['String']['output'];
@@ -281,6 +291,8 @@ export type QueryTenancyArgs = {
 
 export type User = {
   __typename?: 'User';
+  avatarUrl?: Maybe<Scalars['String']['output']>;
+  bio?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['String']['output'];
   email: Scalars['String']['output'];
   firstName: Scalars['String']['output'];
@@ -469,6 +481,7 @@ export type MutationResolvers<ContextType = AuthContext, ParentType extends Reso
   submitSignedAgreement?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationSubmitSignedAgreementArgs, 'id' | 'signedAgreementUrl'>>;
   toggleSaveProperty?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<MutationToggleSavePropertyArgs, 'propertyId'>>;
   updateApplicationStatus?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationUpdateApplicationStatusArgs, 'id' | 'status'>>;
+  updateProfile?: Resolver<ResolversTypes['User'], ParentType, ContextType, Partial<MutationUpdateProfileArgs>>;
 }>;
 
 export type NotificationResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['Notification'] = ResolversParentTypes['Notification']> = ResolversObject<{
@@ -532,6 +545,8 @@ export type QueryResolvers<ContextType = AuthContext, ParentType extends Resolve
 }>;
 
 export type UserResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
+  avatarUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  bio?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   firstName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
