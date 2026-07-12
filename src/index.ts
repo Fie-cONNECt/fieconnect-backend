@@ -26,30 +26,31 @@ app.options('*', cors({ origin: true, credentials: true }));
 
 app.use(express.json());
 
-const startServer = async () => {
-  await connectDB();
-  await server.start();
+let graphqlMiddleware: express.RequestHandler;
 
-  app.use(
-    '/graphql',
-    expressMiddleware(server, {
-      context: async ({ req, res }) => ({
-        ...getAuthContext(req),
-        res,
-      }),
-    }),
-  );
-
-  // Only listen when running locally, Vercel will handle serverless execution
-  if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => {
-      console.log(`Server is running at http://localhost:${PORT}/graphql`);
-    });
+app.use('/graphql', async (req, res, next) => {
+  try {
+    if (!graphqlMiddleware) {
+      await connectDB();
+      await server.start();
+      graphqlMiddleware = expressMiddleware(server, {
+        context: async ({ req, res }) => ({
+          ...getAuthContext(req),
+          res,
+        }),
+      });
+    }
+    return graphqlMiddleware(req, res, next);
+  } catch (error) {
+    next(error);
   }
-};
-
-startServer().catch((err) => {
-  console.error('Failed to start server:', err);
 });
+
+// Only listen when running locally, Vercel will handle serverless execution
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server is running at http://localhost:${PORT}/graphql`);
+  });
+}
 
 export default app;
