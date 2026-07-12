@@ -6,6 +6,7 @@ export const typeDefs = `#graphql
     email: String!
     userType: String!
     phone: String!
+    savedProperties: [Property!]!
     createdAt: String!
     updatedAt: String!
   }
@@ -79,5 +80,6 @@ export const typeDefs = `#graphql
     login(email: String!, password: String!): AuthPayload!
     logout: Boolean!
     createProperty(input: CreatePropertyInput!): Property!
+    toggleSaveProperty(propertyId: ID!): User!
   }
 `;

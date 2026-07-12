@@ -9,6 +9,7 @@ const userSchema = new Schema(
     password: { type: String, required: true },
     userType: { type: String, enum: ['TENANT', 'LANDLORD'], default: 'TENANT', required: true },
     phone: { type: String, required: true },
+    savedProperties: [{ type: Schema.Types.ObjectId, ref: 'Property', default: [] }],
   },
   {
     timestamps: true,

@@ -25,6 +25,7 @@ export const resolvers: Resolvers = {
         email: user.email,
         userType: user.userType,
         phone: user.phone,
+        savedProperties: [],
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       };
@@ -105,6 +106,7 @@ export const resolvers: Resolvers = {
               email: landlord.email,
               userType: landlord.userType,
               phone: landlord.phone,
+              savedProperties: [],
               createdAt: landlord.createdAt?.toISOString() || new Date().toISOString(),
               updatedAt: landlord.updatedAt?.toISOString() || new Date().toISOString(),
             }
@@ -113,8 +115,9 @@ export const resolvers: Resolvers = {
               firstName: 'Unknown',
               lastName: 'Landlord',
               email: '',
-              userType: 'landlord',
+              userType: 'LANDLORD',
               phone: '',
+              savedProperties: [],
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             },
@@ -158,6 +161,7 @@ export const resolvers: Resolvers = {
           email: user.email,
           userType: user.userType,
           phone: user.phone,
+          savedProperties: [],
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString(),
         },
@@ -192,6 +196,7 @@ export const resolvers: Resolvers = {
           email: user.email,
           userType: user.userType,
           phone: user.phone,
+          savedProperties: [],
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString(),
         },
@@ -282,6 +287,42 @@ export const resolvers: Resolvers = {
         updatedAt: (property as any).updatedAt.toISOString(),
       };
     },
+    toggleSaveProperty: async (_, { propertyId }, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+
+      const user = await User.findById(context.userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const propertyExists = await Property.exists({ _id: propertyId });
+      if (!propertyExists) {
+        throw new Error('Property not found');
+      }
+
+      const index = (user as any).savedProperties.indexOf(propertyId);
+      if (index === -1) {
+        (user as any).savedProperties.push(propertyId);
+      } else {
+        (user as any).savedProperties.splice(index, 1);
+      }
+
+      await user.save();
+
+      return {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        userType: user.userType,
+        phone: user.phone,
+        savedProperties: [],
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
+      };
+    },
   },
   Property: {
     landlord: async (parent) => {
@@ -296,6 +337,7 @@ export const resolvers: Resolvers = {
             email: landlordVal.email,
             userType: landlordVal.userType,
             phone: landlordVal.phone,
+            savedProperties: [],
             createdAt: typeof landlordVal.createdAt === 'string' ? landlordVal.createdAt : (landlordVal.createdAt?.toISOString() || new Date().toISOString()),
             updatedAt: typeof landlordVal.updatedAt === 'string' ? landlordVal.updatedAt : (landlordVal.updatedAt?.toISOString() || new Date().toISOString()),
           };
@@ -313,9 +355,47 @@ export const resolvers: Resolvers = {
         email: user.email,
         userType: user.userType,
         phone: user.phone,
+        savedProperties: [],
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       };
+    },
+  },
+  User: {
+    savedProperties: async (parent) => {
+      const userId = parent.id || (parent as any)._id;
+      const user = await User.findById(userId);
+      if (!user || !user.savedProperties) return [];
+      const properties = await Property.find({ _id: { $in: user.savedProperties } });
+      return properties.map((prop) => ({
+        id: prop.id,
+        title: prop.title,
+        type: prop.type,
+        location: prop.location,
+        region: prop.region,
+        district: prop.district,
+        price: prop.price,
+        verified: prop.verified,
+        bedrooms: prop.bedrooms,
+        bathrooms: prop.bathrooms,
+        size: prop.size,
+        parking: prop.parking,
+        about: prop.about,
+        amenities: prop.amenities,
+        lat: prop.lat,
+        lng: prop.lng,
+        image: prop.image,
+        images: {
+          main: prop.images?.main || prop.image,
+          kitchen: prop.images?.kitchen || '',
+          bedroom: prop.images?.bedroom || '',
+          bathroom: prop.images?.bathroom || '',
+        },
+        agreementUrl: prop.agreementUrl || null,
+        landlord: prop.landlord as any,
+        createdAt: (prop as any).createdAt.toISOString(),
+        updatedAt: (prop as any).updatedAt.toISOString(),
+      }));
     },
   },
 };

@@ -49,6 +49,7 @@ export type Mutation = {
   login: AuthPayload;
   logout: Scalars['Boolean']['output'];
   register: AuthPayload;
+  toggleSaveProperty: User;
 };
 
 
@@ -70,6 +71,11 @@ export type MutationRegisterArgs = {
   password: Scalars['String']['input'];
   phone: Scalars['String']['input'];
   userType: Scalars['String']['input'];
+};
+
+
+export type MutationToggleSavePropertyArgs = {
+  propertyId: Scalars['ID']['input'];
 };
 
 export type Property = {
@@ -127,6 +133,7 @@ export type User = {
   id: Scalars['ID']['output'];
   lastName: Scalars['String']['output'];
   phone: Scalars['String']['output'];
+  savedProperties: Array<Property>;
   updatedAt: Scalars['String']['output'];
   userType: Scalars['String']['output'];
 };
@@ -242,6 +249,7 @@ export type MutationResolvers<ContextType = AuthContext, ParentType extends Reso
   login?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationLoginArgs, 'email' | 'password'>>;
   logout?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   register?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationRegisterArgs, 'email' | 'firstName' | 'lastName' | 'password' | 'phone' | 'userType'>>;
+  toggleSaveProperty?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<MutationToggleSavePropertyArgs, 'propertyId'>>;
 }>;
 
 export type PropertyResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['Property'] = ResolversParentTypes['Property']> = ResolversObject<{
@@ -292,6 +300,7 @@ export type UserResolvers<ContextType = AuthContext, ParentType extends Resolver
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   lastName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   phone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  savedProperties?: Resolver<Array<ResolversTypes['Property']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   userType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
