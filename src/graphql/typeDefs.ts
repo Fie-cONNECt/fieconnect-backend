@@ -83,6 +83,8 @@ export const typeDefs = `#graphql
     status: String!
     furtherDetailsRequest: String
     furtherDetailsResponse: String
+    agreementUrl: String
+    signedAgreementUrl: String
     createdAt: String!
     updatedAt: String!
   }
@@ -129,5 +131,7 @@ export const typeDefs = `#graphql
     requestFurtherDetails(id: ID!, message: String!): Application!
     submitFurtherDetails(id: ID!, response: String!): Application!
     markNotificationAsRead(id: ID!): Notification!
+    approveApplicationWithAgreement(id: ID!, agreementUrl: String!): Application!
+    submitSignedAgreement(id: ID!, signedAgreementUrl: String!): Application!
   }
 `;

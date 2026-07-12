@@ -146,6 +146,8 @@ export const resolvers: Resolvers = {
         status: app.status,
         furtherDetailsRequest: app.furtherDetailsRequest || null,
         furtherDetailsResponse: app.furtherDetailsResponse || null,
+        agreementUrl: app.agreementUrl || null,
+        signedAgreementUrl: app.signedAgreementUrl || null,
         createdAt: (app as any).createdAt.toISOString(),
         updatedAt: (app as any).updatedAt.toISOString(),
       }));
@@ -172,6 +174,8 @@ export const resolvers: Resolvers = {
         status: app.status,
         furtherDetailsRequest: app.furtherDetailsRequest || null,
         furtherDetailsResponse: app.furtherDetailsResponse || null,
+        agreementUrl: app.agreementUrl || null,
+        signedAgreementUrl: app.signedAgreementUrl || null,
         createdAt: (app as any).createdAt.toISOString(),
         updatedAt: (app as any).updatedAt.toISOString(),
       }));
@@ -595,6 +599,95 @@ export const resolvers: Resolvers = {
         link: n.link || null,
         createdAt: (n as any).createdAt.toISOString(),
         updatedAt: (n as any).updatedAt.toISOString(),
+      };
+    },
+    approveApplicationWithAgreement: async (_, { id, agreementUrl }, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const app = await Application.findById(id).populate('property');
+      if (!app) {
+        throw new Error('Application not found');
+      }
+      const property = app.property as any;
+      if (property.landlord.toString() !== context.userId) {
+        throw new Error('Unauthorized');
+      }
+      app.status = 'APPROVED_PENDING_SIGNATURE';
+      app.agreementUrl = agreementUrl;
+      await app.save();
+
+      const tenantNotification = new Notification({
+        recipient: app.tenant,
+        title: 'Application Approved (Pending Signature)',
+        message: `Your tenancy application for ${property.title} was approved! Please sign the tenancy agreement.`,
+        link: '/app/applications',
+      });
+      await tenantNotification.save();
+
+      return {
+        id: app.id,
+        property: app.property as any,
+        tenant: app.tenant as any,
+        nationalIdUrl: app.nationalIdUrl,
+        supportingDocsUrl: app.supportingDocsUrl || null,
+        employerName: app.employerName,
+        jobTitle: app.jobTitle,
+        monthlyIncome: app.monthlyIncome,
+        lengthOfEmployment: app.lengthOfEmployment,
+        personalStatement: app.personalStatement,
+        status: app.status,
+        furtherDetailsRequest: app.furtherDetailsRequest || null,
+        furtherDetailsResponse: app.furtherDetailsResponse || null,
+        agreementUrl: app.agreementUrl || null,
+        signedAgreementUrl: app.signedAgreementUrl || null,
+        createdAt: (app as any).createdAt.toISOString(),
+        updatedAt: (app as any).updatedAt.toISOString(),
+      };
+    },
+    submitSignedAgreement: async (_, { id, signedAgreementUrl }, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const app = await Application.findById(id).populate('property');
+      if (!app) {
+        throw new Error('Application not found');
+      }
+      if (app.tenant.toString() !== context.userId) {
+        throw new Error('Unauthorized');
+      }
+      app.status = 'APPROVED';
+      app.signedAgreementUrl = signedAgreementUrl;
+      await app.save();
+
+      const tenantUser = await User.findById(context.userId);
+      const property = app.property as any;
+      const landlordNotification = new Notification({
+        recipient: property.landlord,
+        title: 'Agreement Signed & Completed',
+        message: `${tenantUser?.firstName || 'A tenant'} has signed the tenancy agreement for ${property.title}. Approval is now complete!`,
+        link: '/app/applications',
+      });
+      await landlordNotification.save();
+
+      return {
+        id: app.id,
+        property: app.property as any,
+        tenant: app.tenant as any,
+        nationalIdUrl: app.nationalIdUrl,
+        supportingDocsUrl: app.supportingDocsUrl || null,
+        employerName: app.employerName,
+        jobTitle: app.jobTitle,
+        monthlyIncome: app.monthlyIncome,
+        lengthOfEmployment: app.lengthOfEmployment,
+        personalStatement: app.personalStatement,
+        status: app.status,
+        furtherDetailsRequest: app.furtherDetailsRequest || null,
+        furtherDetailsResponse: app.furtherDetailsResponse || null,
+        agreementUrl: app.agreementUrl || null,
+        signedAgreementUrl: app.signedAgreementUrl || null,
+        createdAt: (app as any).createdAt.toISOString(),
+        updatedAt: (app as any).updatedAt.toISOString(),
       };
     },
   },
