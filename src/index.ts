@@ -22,22 +22,9 @@ const startServer = async () => {
   await connectDB();
   await server.start();
 
-  const allowedOrigins = ['http://localhost:3000', 'https://fie-connect.vercel.app'];
-
   app.use(
     cors({
-      origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        const isAllowed =
-          allowedOrigins.includes(origin) ||
-          origin.startsWith('http://localhost:') ||
-          origin.endsWith('.vercel.app');
-        if (isAllowed) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
-        }
-      },
+      origin: true,
       credentials: true,
     }),
   );
