@@ -103,6 +103,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   addDisputeComment: Dispute;
   approveApplicationWithAgreement: Application;
+  changePassword: Scalars['Boolean']['output'];
   createApplication: Application;
   createDispute: Dispute;
   createProperty: Property;
@@ -116,6 +117,7 @@ export type Mutation = {
   submitSignedAgreement: Application;
   toggleSaveProperty: User;
   updateApplicationStatus: Application;
+  updateProfile: User;
 };
 
 
@@ -128,6 +130,12 @@ export type MutationAddDisputeCommentArgs = {
 export type MutationApproveApplicationWithAgreementArgs = {
   agreementUrl: Scalars['String']['input'];
   id: Scalars['ID']['input'];
+};
+
+
+export type MutationChangePasswordArgs = {
+  currentPassword: Scalars['String']['input'];
+  newPassword: Scalars['String']['input'];
 };
 
 
@@ -203,6 +211,15 @@ export type MutationUpdateApplicationStatusArgs = {
   status: Scalars['String']['input'];
 };
 
+
+export type MutationUpdateProfileArgs = {
+  avatarUrl?: InputMaybe<Scalars['String']['input']>;
+  bio?: InputMaybe<Scalars['String']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  phone?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type Notification = {
   __typename?: 'Notification';
   createdAt: Scalars['String']['output'];
@@ -259,6 +276,7 @@ export type Query = {
   myNotifications: Array<Notification>;
   myProperties: Array<Property>;
   myTenancies: Array<Application>;
+  properties: Array<Property>;
   property?: Maybe<Property>;
   receivedApplications: Array<Application>;
   tenancy?: Maybe<Application>;
@@ -267,6 +285,14 @@ export type Query = {
 
 export type QueryDisputeArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryPropertiesArgs = {
+  maxPrice?: InputMaybe<Scalars['Float']['input']>;
+  minPrice?: InputMaybe<Scalars['Float']['input']>;
+  region?: InputMaybe<Scalars['String']['input']>;
+  type?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -281,6 +307,8 @@ export type QueryTenancyArgs = {
 
 export type User = {
   __typename?: 'User';
+  avatarUrl?: Maybe<Scalars['String']['output']>;
+  bio?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['String']['output'];
   email: Scalars['String']['output'];
   firstName: Scalars['String']['output'];
@@ -456,6 +484,7 @@ export type DisputeResolvers<ContextType = AuthContext, ParentType extends Resol
 export type MutationResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
   addDisputeComment?: Resolver<ResolversTypes['Dispute'], ParentType, ContextType, RequireFields<MutationAddDisputeCommentArgs, 'id' | 'text'>>;
   approveApplicationWithAgreement?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationApproveApplicationWithAgreementArgs, 'agreementUrl' | 'id'>>;
+  changePassword?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType, RequireFields<MutationChangePasswordArgs, 'currentPassword' | 'newPassword'>>;
   createApplication?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationCreateApplicationArgs, 'input'>>;
   createDispute?: Resolver<ResolversTypes['Dispute'], ParentType, ContextType, RequireFields<MutationCreateDisputeArgs, 'description' | 'tenancyId' | 'title'>>;
   createProperty?: Resolver<ResolversTypes['Property'], ParentType, ContextType, RequireFields<MutationCreatePropertyArgs, 'input'>>;
@@ -469,6 +498,7 @@ export type MutationResolvers<ContextType = AuthContext, ParentType extends Reso
   submitSignedAgreement?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationSubmitSignedAgreementArgs, 'id' | 'signedAgreementUrl'>>;
   toggleSaveProperty?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<MutationToggleSavePropertyArgs, 'propertyId'>>;
   updateApplicationStatus?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationUpdateApplicationStatusArgs, 'id' | 'status'>>;
+  updateProfile?: Resolver<ResolversTypes['User'], ParentType, ContextType, Partial<MutationUpdateProfileArgs>>;
 }>;
 
 export type NotificationResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['Notification'] = ResolversParentTypes['Notification']> = ResolversObject<{
@@ -526,12 +556,15 @@ export type QueryResolvers<ContextType = AuthContext, ParentType extends Resolve
   myNotifications?: Resolver<Array<ResolversTypes['Notification']>, ParentType, ContextType>;
   myProperties?: Resolver<Array<ResolversTypes['Property']>, ParentType, ContextType>;
   myTenancies?: Resolver<Array<ResolversTypes['Application']>, ParentType, ContextType>;
+  properties?: Resolver<Array<ResolversTypes['Property']>, ParentType, ContextType, Partial<QueryPropertiesArgs>>;
   property?: Resolver<Maybe<ResolversTypes['Property']>, ParentType, ContextType, RequireFields<QueryPropertyArgs, 'id'>>;
   receivedApplications?: Resolver<Array<ResolversTypes['Application']>, ParentType, ContextType>;
   tenancy?: Resolver<Maybe<ResolversTypes['Application']>, ParentType, ContextType, RequireFields<QueryTenancyArgs, 'id'>>;
 }>;
 
 export type UserResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
+  avatarUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  bio?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   firstName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

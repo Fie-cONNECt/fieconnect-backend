@@ -28,9 +28,11 @@ export const resolvers: Resolvers = {
         email: user.email,
         userType: user.userType,
         phone: user.phone,
+        avatarUrl: (user as any).avatarUrl || null,
+        bio: (user as any).bio || null,
         savedProperties: [],
-        createdAt: user.createdAt.toISOString(),
-        updatedAt: user.updatedAt.toISOString(),
+        createdAt: (user as any).createdAt.toISOString(),
+        updatedAt: (user as any).updatedAt.toISOString(),
       };
     },
     myProperties: async (_, __, context) => {
@@ -38,6 +40,46 @@ export const resolvers: Resolvers = {
         throw new Error('Not authenticated');
       }
       const properties = await Property.find({ landlord: context.userId });
+      return properties.map((prop) => ({
+        id: prop.id,
+        title: prop.title,
+        type: prop.type,
+        location: prop.location,
+        region: prop.region,
+        district: prop.district,
+        price: prop.price,
+        verified: prop.verified,
+        bedrooms: prop.bedrooms,
+        bathrooms: prop.bathrooms,
+        size: prop.size,
+        parking: prop.parking,
+        about: prop.about,
+        amenities: prop.amenities,
+        lat: prop.lat,
+        lng: prop.lng,
+        image: prop.image,
+        images: {
+          main: prop.images?.main || prop.image,
+          kitchen: prop.images?.kitchen || '',
+          bedroom: prop.images?.bedroom || '',
+          bathroom: prop.images?.bathroom || '',
+        },
+        agreementUrl: prop.agreementUrl || null,
+        landlord: prop.landlord as any,
+        createdAt: (prop as any).createdAt.toISOString(),
+        updatedAt: (prop as any).updatedAt.toISOString(),
+      }));
+    },
+    properties: async (_: any, { region, type, minPrice, maxPrice }: any) => {
+      const filter: any = {};
+      if (region && region !== 'All') filter.region = { $regex: region, $options: 'i' };
+      if (type && type !== 'All') filter.type = { $regex: type, $options: 'i' };
+      if (minPrice !== undefined || maxPrice !== undefined) {
+        filter.price = {};
+        if (minPrice !== undefined) filter.price.$gte = minPrice;
+        if (maxPrice !== undefined) filter.price.$lte = maxPrice;
+      }
+      const properties = await Property.find(filter).sort({ createdAt: -1 }).limit(50);
       return properties.map((prop) => ({
         id: prop.id,
         title: prop.title,
@@ -159,8 +201,10 @@ export const resolvers: Resolvers = {
       }
       const properties = await Property.find({ landlord: context.userId });
       const propertyIds = properties.map((p) => p._id);
-      
-      const apps = await Application.find({ property: { $in: propertyIds } }).sort({ createdAt: -1 });
+
+      const apps = await Application.find({ property: { $in: propertyIds } }).sort({
+        createdAt: -1,
+      });
       return apps.map((app) => ({
         id: app.id,
         property: app.property as any,
@@ -185,7 +229,9 @@ export const resolvers: Resolvers = {
       if (!context.userId) {
         throw new Error('Not authenticated');
       }
-      const notifications = await Notification.find({ recipient: context.userId }).sort({ createdAt: -1 });
+      const notifications = await Notification.find({ recipient: context.userId }).sort({
+        createdAt: -1,
+      });
       return notifications.map((n) => ({
         id: n.id,
         recipient: n.recipient as any,
@@ -207,10 +253,7 @@ export const resolvers: Resolvers = {
 
       const apps = await Application.find({
         status: 'APPROVED',
-        $or: [
-          { tenant: context.userId },
-          { property: { $in: propertyIds } }
-        ]
+        $or: [{ tenant: context.userId }, { property: { $in: propertyIds } }],
       }).sort({ updatedAt: -1 });
 
       return apps.map((app) => ({
@@ -242,7 +285,10 @@ export const resolvers: Resolvers = {
         throw new Error('Tenancy application not found');
       }
       const property = app.property as any;
-      if (app.tenant.toString() !== context.userId && property.landlord.toString() !== context.userId) {
+      if (
+        app.tenant.toString() !== context.userId &&
+        property.landlord.toString() !== context.userId
+      ) {
         throw new Error('Unauthorized');
       }
       return {
@@ -275,17 +321,14 @@ export const resolvers: Resolvers = {
 
       const activeTenancies = await Application.find({
         status: 'APPROVED',
-        $or: [
-          { tenant: context.userId },
-          { property: { $in: propertyIds } }
-        ]
+        $or: [{ tenant: context.userId }, { property: { $in: propertyIds } }],
       });
       const tenancyIds = activeTenancies.map((t) => t._id);
 
       const disputes = await Dispute.find({ tenancy: { $in: tenancyIds } })
         .populate({
           path: 'tenancy',
-          populate: { path: 'property' }
+          populate: { path: 'property' },
         })
         .populate('creator')
         .populate('comments.sender')
@@ -303,12 +346,12 @@ export const resolvers: Resolvers = {
           id: c.id || c._id?.toString(),
           sender: c.sender as any,
           text: c.text,
-          createdAt: c.createdAt.toISOString()
+          createdAt: c.createdAt.toISOString(),
         })),
         viewedByLandlordAt: d.viewedByLandlordAt?.toISOString() || null,
         viewedByTenantAt: d.viewedByTenantAt?.toISOString() || null,
         createdAt: (d as any).createdAt.toISOString(),
-        updatedAt: (d as any).updatedAt.toISOString()
+        updatedAt: (d as any).updatedAt.toISOString(),
       }));
     },
     dispute: async (_: any, { id }: any, context: any) => {
@@ -319,7 +362,7 @@ export const resolvers: Resolvers = {
       const d = await Dispute.findById(id)
         .populate({
           path: 'tenancy',
-          populate: { path: 'property' }
+          populate: { path: 'property' },
         })
         .populate('creator')
         .populate('comments.sender');
@@ -357,12 +400,12 @@ export const resolvers: Resolvers = {
           id: c.id || c._id?.toString(),
           sender: c.sender as any,
           text: c.text,
-          createdAt: c.createdAt.toISOString()
+          createdAt: c.createdAt.toISOString(),
         })),
         viewedByLandlordAt: d.viewedByLandlordAt?.toISOString() || null,
         viewedByTenantAt: d.viewedByTenantAt?.toISOString() || null,
         createdAt: (d as any).createdAt.toISOString(),
-        updatedAt: (d as any).updatedAt.toISOString()
+        updatedAt: (d as any).updatedAt.toISOString(),
       };
     },
   },
@@ -441,6 +484,60 @@ export const resolvers: Resolvers = {
           updatedAt: user.updatedAt.toISOString(),
         },
       };
+    },
+    updateProfile: async (
+      _: any,
+      { firstName, lastName, phone, bio, avatarUrl }: any,
+      context: any,
+    ) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const user = await User.findById(context.userId);
+      if (!user) throw new Error('User not found');
+
+      if (firstName !== undefined) user.firstName = firstName;
+      if (lastName !== undefined) user.lastName = lastName;
+      if (phone !== undefined) user.phone = phone;
+      if (bio !== undefined) (user as any).bio = bio;
+      if (avatarUrl !== undefined) (user as any).avatarUrl = avatarUrl;
+
+      await user.save();
+
+      return {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        userType: user.userType,
+        phone: user.phone,
+        avatarUrl: (user as any).avatarUrl || null,
+        bio: (user as any).bio || null,
+        savedProperties: [],
+        createdAt: (user as any).createdAt.toISOString(),
+        updatedAt: (user as any).updatedAt.toISOString(),
+      };
+    },
+    changePassword: async (_: any, { currentPassword, newPassword }: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const user = await User.findById(context.userId);
+      if (!user) throw new Error('User not found');
+
+      const isMatch = await (user as any).comparePassword(currentPassword);
+      if (!isMatch) {
+        throw new Error('Current password is incorrect.');
+      }
+
+      if (newPassword.length < 8) {
+        throw new Error('New password must be at least 8 characters.');
+      }
+
+      user.password = newPassword;
+      await user.save(); // pre-save hook will hash it
+
+      return true;
     },
     logout: async (_, __, context) => {
       if (context.res) {
@@ -859,7 +956,11 @@ export const resolvers: Resolvers = {
         updatedAt: (app as any).updatedAt.toISOString(),
       };
     },
-    createDispute: async (_: any, { tenancyId, title, description, evidenceUrl }: any, context: any) => {
+    createDispute: async (
+      _: any,
+      { tenancyId, title, description, evidenceUrl }: any,
+      context: any,
+    ) => {
       if (!context.userId) {
         throw new Error('Not authenticated');
       }
@@ -886,7 +987,7 @@ export const resolvers: Resolvers = {
         status: 'OPEN',
         comments: [],
         viewedByLandlordAt: isLandlordUser ? new Date() : null,
-        viewedByTenantAt: isTenantUser ? new Date() : null
+        viewedByTenantAt: isTenantUser ? new Date() : null,
       });
       await dispute.save();
 
@@ -895,14 +996,14 @@ export const resolvers: Resolvers = {
         recipient: opposingPartyId,
         title: 'New Dispute Raised',
         message: `A dispute has been raised regarding ${property.title}: "${title}".`,
-        link: `/app/disputes/${dispute.id}`
+        link: `/app/disputes/${dispute.id}`,
       });
       await disputeNotification.save();
 
       const d = await Dispute.findById(dispute.id)
         .populate({
           path: 'tenancy',
-          populate: { path: 'property' }
+          populate: { path: 'property' },
         })
         .populate('creator');
 
@@ -918,7 +1019,7 @@ export const resolvers: Resolvers = {
         viewedByLandlordAt: d!.viewedByLandlordAt?.toISOString() || null,
         viewedByTenantAt: d!.viewedByTenantAt?.toISOString() || null,
         createdAt: (d as any).createdAt.toISOString(),
-        updatedAt: (d as any).updatedAt.toISOString()
+        updatedAt: (d as any).updatedAt.toISOString(),
       };
     },
     addDisputeComment: async (_: any, { id, text }: any, context: any) => {
@@ -943,7 +1044,7 @@ export const resolvers: Resolvers = {
       const newComment = {
         sender: context.userId,
         text,
-        createdAt: new Date()
+        createdAt: new Date(),
       };
 
       d.comments.push(newComment as any);
@@ -961,14 +1062,14 @@ export const resolvers: Resolvers = {
         recipient: opposingPartyId,
         title: 'New Dispute Comment',
         message: `A new comment was added to the dispute regarding ${property?.title || 'your property'}.`,
-        link: `/app/disputes/${d.id}`
+        link: `/app/disputes/${d.id}`,
       });
       await commentNotification.save();
 
       const populated = await Dispute.findById(d.id)
         .populate({
           path: 'tenancy',
-          populate: { path: 'property' }
+          populate: { path: 'property' },
         })
         .populate('creator')
         .populate('comments.sender');
@@ -985,12 +1086,12 @@ export const resolvers: Resolvers = {
           id: c.id || c._id?.toString(),
           sender: c.sender as any,
           text: c.text,
-          createdAt: c.createdAt.toISOString()
+          createdAt: c.createdAt.toISOString(),
         })),
         viewedByLandlordAt: populated!.viewedByLandlordAt?.toISOString() || null,
         viewedByTenantAt: populated!.viewedByTenantAt?.toISOString() || null,
         createdAt: (populated as any).createdAt.toISOString(),
-        updatedAt: (populated as any).updatedAt.toISOString()
+        updatedAt: (populated as any).updatedAt.toISOString(),
       };
     },
     resolveDispute: async (_: any, { id }: any, context: any) => {
@@ -1012,20 +1113,21 @@ export const resolvers: Resolvers = {
 
       const tenancy = d.tenancy as any;
       const property = await Property.findById(tenancy.property);
-      const opposingPartyId = d.creator.toString() === tenancy.tenant.toString() ? property?.landlord : tenancy.tenant;
+      const opposingPartyId =
+        d.creator.toString() === tenancy.tenant.toString() ? property?.landlord : tenancy.tenant;
 
       const resolveNotification = new Notification({
         recipient: opposingPartyId,
         title: 'Dispute Resolved & Closed',
         message: `The dispute regarding ${property?.title || 'your property'} has been marked as resolved and closed.`,
-        link: `/app/disputes/${d.id}`
+        link: `/app/disputes/${d.id}`,
       });
       await resolveNotification.save();
 
       const populated = await Dispute.findById(d.id)
         .populate({
           path: 'tenancy',
-          populate: { path: 'property' }
+          populate: { path: 'property' },
         })
         .populate('creator')
         .populate('comments.sender');
@@ -1042,12 +1144,12 @@ export const resolvers: Resolvers = {
           id: c.id || c._id?.toString(),
           sender: c.sender as any,
           text: c.text,
-          createdAt: c.createdAt.toISOString()
+          createdAt: c.createdAt.toISOString(),
         })),
         viewedByLandlordAt: populated!.viewedByLandlordAt?.toISOString() || null,
         viewedByTenantAt: populated!.viewedByTenantAt?.toISOString() || null,
         createdAt: (populated as any).createdAt.toISOString(),
-        updatedAt: (populated as any).updatedAt.toISOString()
+        updatedAt: (populated as any).updatedAt.toISOString(),
       };
     },
   },
@@ -1227,8 +1329,14 @@ export const resolvers: Resolvers = {
             userType: recipientVal.userType,
             phone: recipientVal.phone,
             savedProperties: [],
-            createdAt: typeof recipientVal.createdAt === 'string' ? recipientVal.createdAt : (recipientVal.createdAt?.toISOString() || new Date().toISOString()),
-            updatedAt: typeof recipientVal.updatedAt === 'string' ? recipientVal.updatedAt : (recipientVal.updatedAt?.toISOString() || new Date().toISOString()),
+            createdAt:
+              typeof recipientVal.createdAt === 'string'
+                ? recipientVal.createdAt
+                : recipientVal.createdAt?.toISOString() || new Date().toISOString(),
+            updatedAt:
+              typeof recipientVal.updatedAt === 'string'
+                ? recipientVal.updatedAt
+                : recipientVal.updatedAt?.toISOString() || new Date().toISOString(),
           };
         }
       }

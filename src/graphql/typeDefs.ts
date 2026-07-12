@@ -6,6 +6,8 @@ export const typeDefs = `#graphql
     email: String!
     userType: String!
     phone: String!
+    avatarUrl: String
+    bio: String
     savedProperties: [Property!]!
     createdAt: String!
     updatedAt: String!
@@ -136,6 +138,7 @@ export const typeDefs = `#graphql
   type Query {
     me: User
     myProperties: [Property!]!
+    properties(region: String, type: String, minPrice: Float, maxPrice: Float): [Property!]!
     property(id: ID!): Property
     myApplications: [Application!]!
     receivedApplications: [Application!]!
@@ -162,5 +165,7 @@ export const typeDefs = `#graphql
     createDispute(tenancyId: ID!, title: String!, description: String!, evidenceUrl: String): Dispute!
     addDisputeComment(id: ID!, text: String!): Dispute!
     resolveDispute(id: ID!): Dispute!
+    updateProfile(firstName: String, lastName: String, phone: String, bio: String, avatarUrl: String): User!
+    changePassword(currentPassword: String!, newPassword: String!): Boolean!
   }
 `;
