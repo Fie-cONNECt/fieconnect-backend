@@ -196,6 +196,74 @@ export const resolvers: Resolvers = {
         updatedAt: (n as any).updatedAt.toISOString(),
       }));
     },
+    myTenancies: async (_: any, __: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+
+      const properties = await Property.find({ landlord: context.userId });
+      const propertyIds = properties.map((p) => p._id);
+
+      const apps = await Application.find({
+        status: 'APPROVED',
+        $or: [
+          { tenant: context.userId },
+          { property: { $in: propertyIds } }
+        ]
+      }).sort({ updatedAt: -1 });
+
+      return apps.map((app) => ({
+        id: app.id,
+        property: app.property as any,
+        tenant: app.tenant as any,
+        nationalIdUrl: app.nationalIdUrl,
+        supportingDocsUrl: app.supportingDocsUrl || null,
+        employerName: app.employerName,
+        jobTitle: app.jobTitle,
+        monthlyIncome: app.monthlyIncome,
+        lengthOfEmployment: app.lengthOfEmployment,
+        personalStatement: app.personalStatement,
+        status: app.status,
+        furtherDetailsRequest: app.furtherDetailsRequest || null,
+        furtherDetailsResponse: app.furtherDetailsResponse || null,
+        agreementUrl: app.agreementUrl || null,
+        signedAgreementUrl: app.signedAgreementUrl || null,
+        createdAt: (app as any).createdAt.toISOString(),
+        updatedAt: (app as any).updatedAt.toISOString(),
+      }));
+    },
+    tenancy: async (_: any, { id }: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const app = await Application.findById(id).populate('property');
+      if (!app) {
+        throw new Error('Tenancy application not found');
+      }
+      const property = app.property as any;
+      if (app.tenant.toString() !== context.userId && property.landlord.toString() !== context.userId) {
+        throw new Error('Unauthorized');
+      }
+      return {
+        id: app.id,
+        property: app.property as any,
+        tenant: app.tenant as any,
+        nationalIdUrl: app.nationalIdUrl,
+        supportingDocsUrl: app.supportingDocsUrl || null,
+        employerName: app.employerName,
+        jobTitle: app.jobTitle,
+        monthlyIncome: app.monthlyIncome,
+        lengthOfEmployment: app.lengthOfEmployment,
+        personalStatement: app.personalStatement,
+        status: app.status,
+        furtherDetailsRequest: app.furtherDetailsRequest || null,
+        furtherDetailsResponse: app.furtherDetailsResponse || null,
+        agreementUrl: app.agreementUrl || null,
+        signedAgreementUrl: app.signedAgreementUrl || null,
+        createdAt: (app as any).createdAt.toISOString(),
+        updatedAt: (app as any).updatedAt.toISOString(),
+      };
+    },
   },
   Mutation: {
     register: async (_, { firstName, lastName, email, password, userType, phone }, context) => {

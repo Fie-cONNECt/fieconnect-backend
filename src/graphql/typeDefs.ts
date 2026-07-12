@@ -118,6 +118,8 @@ export const typeDefs = `#graphql
     myApplications: [Application!]!
     receivedApplications: [Application!]!
     myNotifications: [Notification!]!
+    myTenancies: [Application!]!
+    tenancy(id: ID!): Application
   }
 
   type Mutation {
