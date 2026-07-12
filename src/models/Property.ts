@@ -5,13 +5,11 @@ const propertySchema = new Schema(
     title: { type: String, required: true },
     type: {
       type: String,
-      enum: ['Apartment', 'Studio', 'Townhouse', 'Penthouse'],
       required: true,
     },
     location: { type: String, required: true },
     region: {
       type: String,
-      enum: ['Greater Accra', 'Ashanti', 'Western', 'Eastern'],
       required: true,
     },
     district: { type: String, required: true },
