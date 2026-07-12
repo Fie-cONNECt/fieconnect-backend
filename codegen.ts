@@ -8,7 +8,7 @@ const config: CodegenConfig = {
       plugins: ['typescript', 'typescript-resolvers'],
       config: {
         useIndexSignature: true,
-        contextType: '../../../middleware/auth#AuthContext',
+        contextType: '../../middleware/auth#AuthContext',
       },
     },
   },
