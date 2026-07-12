@@ -81,6 +81,19 @@ export const typeDefs = `#graphql
     lengthOfEmployment: String!
     personalStatement: String!
     status: String!
+    furtherDetailsRequest: String
+    furtherDetailsResponse: String
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  type Notification {
+    id: ID!
+    recipient: User!
+    title: String!
+    message: String!
+    read: Boolean!
+    link: String
     createdAt: String!
     updatedAt: String!
   }
@@ -101,6 +114,8 @@ export const typeDefs = `#graphql
     myProperties: [Property!]!
     property(id: ID!): Property
     myApplications: [Application!]!
+    receivedApplications: [Application!]!
+    myNotifications: [Notification!]!
   }
 
   type Mutation {
@@ -110,5 +125,9 @@ export const typeDefs = `#graphql
     createProperty(input: CreatePropertyInput!): Property!
     toggleSaveProperty(propertyId: ID!): User!
     createApplication(input: CreateApplicationInput!): Application!
+    updateApplicationStatus(id: ID!, status: String!): Application!
+    requestFurtherDetails(id: ID!, message: String!): Application!
+    submitFurtherDetails(id: ID!, response: String!): Application!
+    markNotificationAsRead(id: ID!): Notification!
   }
 `;

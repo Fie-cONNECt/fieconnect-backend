@@ -1,6 +1,7 @@
 import { User } from '../models/User';
 import { Property } from '../models/Property';
 import { Application } from '../models/Application';
+import { Notification } from '../models/Notification';
 import jwt from 'jsonwebtoken';
 import { Resolvers } from './__generated__/resolvers-types';
 import mongoose from 'mongoose';
@@ -130,7 +131,7 @@ export const resolvers: Resolvers = {
       if (!context.userId) {
         throw new Error('Not authenticated');
       }
-      const apps = await Application.find({ tenant: context.userId });
+      const apps = await Application.find({ tenant: context.userId }).sort({ createdAt: -1 });
       return apps.map((app) => ({
         id: app.id,
         property: app.property as any,
@@ -143,8 +144,52 @@ export const resolvers: Resolvers = {
         lengthOfEmployment: app.lengthOfEmployment,
         personalStatement: app.personalStatement,
         status: app.status,
+        furtherDetailsRequest: app.furtherDetailsRequest || null,
+        furtherDetailsResponse: app.furtherDetailsResponse || null,
         createdAt: (app as any).createdAt.toISOString(),
         updatedAt: (app as any).updatedAt.toISOString(),
+      }));
+    },
+    receivedApplications: async (_, __, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const properties = await Property.find({ landlord: context.userId });
+      const propertyIds = properties.map((p) => p._id);
+      
+      const apps = await Application.find({ property: { $in: propertyIds } }).sort({ createdAt: -1 });
+      return apps.map((app) => ({
+        id: app.id,
+        property: app.property as any,
+        tenant: app.tenant as any,
+        nationalIdUrl: app.nationalIdUrl,
+        supportingDocsUrl: app.supportingDocsUrl || null,
+        employerName: app.employerName,
+        jobTitle: app.jobTitle,
+        monthlyIncome: app.monthlyIncome,
+        lengthOfEmployment: app.lengthOfEmployment,
+        personalStatement: app.personalStatement,
+        status: app.status,
+        furtherDetailsRequest: app.furtherDetailsRequest || null,
+        furtherDetailsResponse: app.furtherDetailsResponse || null,
+        createdAt: (app as any).createdAt.toISOString(),
+        updatedAt: (app as any).updatedAt.toISOString(),
+      }));
+    },
+    myNotifications: async (_, __, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const notifications = await Notification.find({ recipient: context.userId }).sort({ createdAt: -1 });
+      return notifications.map((n) => ({
+        id: n.id,
+        recipient: n.recipient as any,
+        title: n.title,
+        message: n.message,
+        read: n.read,
+        link: n.link || null,
+        createdAt: (n as any).createdAt.toISOString(),
+        updatedAt: (n as any).updatedAt.toISOString(),
       }));
     },
   },
@@ -350,8 +395,8 @@ export const resolvers: Resolvers = {
         throw new Error('Not authenticated');
       }
 
-      const propertyExists = await Property.exists({ _id: input.propertyId });
-      if (!propertyExists) {
+      const property = await Property.findById(input.propertyId);
+      if (!property) {
         throw new Error('Property not found');
       }
 
@@ -370,6 +415,16 @@ export const resolvers: Resolvers = {
 
       await application.save();
 
+      // Create notification for landlord
+      const tenantUser = await User.findById(context.userId);
+      const landlordNotification = new Notification({
+        recipient: property.landlord,
+        title: 'New Tenancy Application',
+        message: `You have received a new tenancy application from ${tenantUser?.firstName || 'a tenant'} for ${property.title}.`,
+        link: '/app/applications',
+      });
+      await landlordNotification.save();
+
       return {
         id: application.id,
         property: application.property as any,
@@ -382,8 +437,164 @@ export const resolvers: Resolvers = {
         lengthOfEmployment: application.lengthOfEmployment,
         personalStatement: application.personalStatement,
         status: application.status,
+        furtherDetailsRequest: null,
+        furtherDetailsResponse: null,
         createdAt: (application as any).createdAt.toISOString(),
         updatedAt: (application as any).updatedAt.toISOString(),
+      };
+    },
+    updateApplicationStatus: async (_, { id, status }, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const app = await Application.findById(id).populate('property');
+      if (!app) {
+        throw new Error('Application not found');
+      }
+      const property = app.property as any;
+      if (property.landlord.toString() !== context.userId) {
+        throw new Error('Unauthorized');
+      }
+      app.status = status as any;
+      await app.save();
+
+      // Create notification for tenant
+      const tenantNotification = new Notification({
+        recipient: app.tenant,
+        title: `Tenancy Application ${status === 'APPROVED' ? 'Approved' : 'Rejected'}`,
+        message: `Your tenancy application for ${property.title} was ${status.toLowerCase()} by the landlord.`,
+        link: '/app/applications',
+      });
+      await tenantNotification.save();
+
+      return {
+        id: app.id,
+        property: app.property as any,
+        tenant: app.tenant as any,
+        nationalIdUrl: app.nationalIdUrl,
+        supportingDocsUrl: app.supportingDocsUrl || null,
+        employerName: app.employerName,
+        jobTitle: app.jobTitle,
+        monthlyIncome: app.monthlyIncome,
+        lengthOfEmployment: app.lengthOfEmployment,
+        personalStatement: app.personalStatement,
+        status: app.status,
+        furtherDetailsRequest: app.furtherDetailsRequest || null,
+        furtherDetailsResponse: app.furtherDetailsResponse || null,
+        createdAt: (app as any).createdAt.toISOString(),
+        updatedAt: (app as any).updatedAt.toISOString(),
+      };
+    },
+    requestFurtherDetails: async (_, { id, message }, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const app = await Application.findById(id).populate('property');
+      if (!app) {
+        throw new Error('Application not found');
+      }
+      const property = app.property as any;
+      if (property.landlord.toString() !== context.userId) {
+        throw new Error('Unauthorized');
+      }
+      app.status = 'INFORMATION_REQUESTED';
+      app.furtherDetailsRequest = message;
+      app.furtherDetailsResponse = '';
+      await app.save();
+
+      // Create notification for tenant
+      const tenantNotification = new Notification({
+        recipient: app.tenant,
+        title: 'Information Requested for Tenancy',
+        message: `The landlord for ${property.title} has requested further details: "${message.substring(0, 60)}..."`,
+        link: '/app/applications',
+      });
+      await tenantNotification.save();
+
+      return {
+        id: app.id,
+        property: app.property as any,
+        tenant: app.tenant as any,
+        nationalIdUrl: app.nationalIdUrl,
+        supportingDocsUrl: app.supportingDocsUrl || null,
+        employerName: app.employerName,
+        jobTitle: app.jobTitle,
+        monthlyIncome: app.monthlyIncome,
+        lengthOfEmployment: app.lengthOfEmployment,
+        personalStatement: app.personalStatement,
+        status: app.status,
+        furtherDetailsRequest: app.furtherDetailsRequest || null,
+        furtherDetailsResponse: app.furtherDetailsResponse || null,
+        createdAt: (app as any).createdAt.toISOString(),
+        updatedAt: (app as any).updatedAt.toISOString(),
+      };
+    },
+    submitFurtherDetails: async (_, { id, response }, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const app = await Application.findById(id).populate('property');
+      if (!app) {
+        throw new Error('Application not found');
+      }
+      if (app.tenant.toString() !== context.userId) {
+        throw new Error('Unauthorized');
+      }
+      app.status = 'PENDING';
+      app.furtherDetailsResponse = response;
+      await app.save();
+
+      // Create notification for landlord
+      const tenantUser = await User.findById(context.userId);
+      const property = app.property as any;
+      const landlordNotification = new Notification({
+        recipient: property.landlord,
+        title: 'Application Details Submitted',
+        message: `${tenantUser?.firstName || 'A tenant'} has responded to your information request for ${property.title}.`,
+        link: '/app/applications',
+      });
+      await landlordNotification.save();
+
+      return {
+        id: app.id,
+        property: app.property as any,
+        tenant: app.tenant as any,
+        nationalIdUrl: app.nationalIdUrl,
+        supportingDocsUrl: app.supportingDocsUrl || null,
+        employerName: app.employerName,
+        jobTitle: app.jobTitle,
+        monthlyIncome: app.monthlyIncome,
+        lengthOfEmployment: app.lengthOfEmployment,
+        personalStatement: app.personalStatement,
+        status: app.status,
+        furtherDetailsRequest: app.furtherDetailsRequest || null,
+        furtherDetailsResponse: app.furtherDetailsResponse || null,
+        createdAt: (app as any).createdAt.toISOString(),
+        updatedAt: (app as any).updatedAt.toISOString(),
+      };
+    },
+    markNotificationAsRead: async (_, { id }, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const n = await Notification.findById(id);
+      if (!n) {
+        throw new Error('Notification not found');
+      }
+      if (n.recipient.toString() !== context.userId) {
+        throw new Error('Unauthorized');
+      }
+      n.read = true;
+      await n.save();
+      return {
+        id: n.id,
+        recipient: n.recipient as any,
+        title: n.title,
+        message: n.message,
+        read: n.read,
+        link: n.link || null,
+        createdAt: (n as any).createdAt.toISOString(),
+        updatedAt: (n as any).updatedAt.toISOString(),
       };
     },
   },
@@ -535,6 +746,43 @@ export const resolvers: Resolvers = {
       const user = await User.findById(tenantVal);
       if (!user) {
         throw new Error('Tenant user not found');
+      }
+      return {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        userType: user.userType,
+        phone: user.phone,
+        savedProperties: [],
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
+      };
+    },
+  },
+  Notification: {
+    recipient: async (parent) => {
+      const recipientVal = (parent as any).recipient;
+      if (recipientVal && typeof recipientVal === 'object') {
+        const id = recipientVal.id || recipientVal._id?.toString();
+        if (id && recipientVal.firstName) {
+          return {
+            id,
+            firstName: recipientVal.firstName,
+            lastName: recipientVal.lastName,
+            email: recipientVal.email,
+            userType: recipientVal.userType,
+            phone: recipientVal.phone,
+            savedProperties: [],
+            createdAt: typeof recipientVal.createdAt === 'string' ? recipientVal.createdAt : (recipientVal.createdAt?.toISOString() || new Date().toISOString()),
+            updatedAt: typeof recipientVal.updatedAt === 'string' ? recipientVal.updatedAt : (recipientVal.updatedAt?.toISOString() || new Date().toISOString()),
+          };
+        }
+      }
+
+      const user = await User.findById(recipientVal);
+      if (!user) {
+        throw new Error('Notification recipient user not found');
       }
       return {
         id: user.id,
