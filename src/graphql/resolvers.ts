@@ -2,6 +2,7 @@ import { User } from '../models/User';
 import { Property } from '../models/Property';
 import { Application } from '../models/Application';
 import { Notification } from '../models/Notification';
+import { Dispute } from '../models/Dispute';
 import jwt from 'jsonwebtoken';
 import { Resolvers } from './__generated__/resolvers-types';
 import mongoose from 'mongoose';
@@ -262,6 +263,106 @@ export const resolvers: Resolvers = {
         signedAgreementUrl: app.signedAgreementUrl || null,
         createdAt: (app as any).createdAt.toISOString(),
         updatedAt: (app as any).updatedAt.toISOString(),
+      };
+    },
+    myDisputes: async (_: any, __: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+
+      const properties = await Property.find({ landlord: context.userId });
+      const propertyIds = properties.map((p) => p._id);
+
+      const activeTenancies = await Application.find({
+        status: 'APPROVED',
+        $or: [
+          { tenant: context.userId },
+          { property: { $in: propertyIds } }
+        ]
+      });
+      const tenancyIds = activeTenancies.map((t) => t._id);
+
+      const disputes = await Dispute.find({ tenancy: { $in: tenancyIds } })
+        .populate({
+          path: 'tenancy',
+          populate: { path: 'property' }
+        })
+        .populate('creator')
+        .populate('comments.sender')
+        .sort({ updatedAt: -1 });
+
+      return disputes.map((d) => ({
+        id: d.id,
+        tenancy: d.tenancy as any,
+        creator: d.creator as any,
+        title: d.title,
+        description: d.description,
+        evidenceUrl: d.evidenceUrl || null,
+        status: d.status,
+        comments: d.comments.map((c: any) => ({
+          id: c.id || c._id?.toString(),
+          sender: c.sender as any,
+          text: c.text,
+          createdAt: c.createdAt.toISOString()
+        })),
+        viewedByLandlordAt: d.viewedByLandlordAt?.toISOString() || null,
+        viewedByTenantAt: d.viewedByTenantAt?.toISOString() || null,
+        createdAt: (d as any).createdAt.toISOString(),
+        updatedAt: (d as any).updatedAt.toISOString()
+      }));
+    },
+    dispute: async (_: any, { id }: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+
+      const d = await Dispute.findById(id)
+        .populate({
+          path: 'tenancy',
+          populate: { path: 'property' }
+        })
+        .populate('creator')
+        .populate('comments.sender');
+
+      if (!d) {
+        throw new Error('Dispute not found');
+      }
+
+      const tenancy = d.tenancy as any;
+      const property = tenancy.property as any;
+      const isLandlordUser = property.landlord.toString() === context.userId;
+      const isTenantUser = tenancy.tenant.toString() === context.userId;
+
+      if (!isLandlordUser && !isTenantUser) {
+        throw new Error('Unauthorized');
+      }
+
+      if (isLandlordUser && !d.viewedByLandlordAt) {
+        d.viewedByLandlordAt = new Date();
+        await d.save();
+      } else if (isTenantUser && !d.viewedByTenantAt) {
+        d.viewedByTenantAt = new Date();
+        await d.save();
+      }
+
+      return {
+        id: d.id,
+        tenancy: d.tenancy as any,
+        creator: d.creator as any,
+        title: d.title,
+        description: d.description,
+        evidenceUrl: d.evidenceUrl || null,
+        status: d.status,
+        comments: d.comments.map((c: any) => ({
+          id: c.id || c._id?.toString(),
+          sender: c.sender as any,
+          text: c.text,
+          createdAt: c.createdAt.toISOString()
+        })),
+        viewedByLandlordAt: d.viewedByLandlordAt?.toISOString() || null,
+        viewedByTenantAt: d.viewedByTenantAt?.toISOString() || null,
+        createdAt: (d as any).createdAt.toISOString(),
+        updatedAt: (d as any).updatedAt.toISOString()
       };
     },
   },
@@ -756,6 +857,197 @@ export const resolvers: Resolvers = {
         signedAgreementUrl: app.signedAgreementUrl || null,
         createdAt: (app as any).createdAt.toISOString(),
         updatedAt: (app as any).updatedAt.toISOString(),
+      };
+    },
+    createDispute: async (_: any, { tenancyId, title, description, evidenceUrl }: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+
+      const tenancy = await Application.findById(tenancyId).populate('property');
+      if (!tenancy) {
+        throw new Error('Tenancy not found');
+      }
+
+      const property = tenancy.property as any;
+      const isLandlordUser = property.landlord.toString() === context.userId;
+      const isTenantUser = tenancy.tenant.toString() === context.userId;
+
+      if (!isLandlordUser && !isTenantUser) {
+        throw new Error('Unauthorized');
+      }
+
+      const dispute = new Dispute({
+        tenancy: tenancyId,
+        creator: context.userId,
+        title,
+        description,
+        evidenceUrl,
+        status: 'OPEN',
+        comments: [],
+        viewedByLandlordAt: isLandlordUser ? new Date() : null,
+        viewedByTenantAt: isTenantUser ? new Date() : null
+      });
+      await dispute.save();
+
+      const opposingPartyId = isLandlordUser ? tenancy.tenant : property.landlord;
+      const disputeNotification = new Notification({
+        recipient: opposingPartyId,
+        title: 'New Dispute Raised',
+        message: `A dispute has been raised regarding ${property.title}: "${title}".`,
+        link: `/app/disputes/${dispute.id}`
+      });
+      await disputeNotification.save();
+
+      const d = await Dispute.findById(dispute.id)
+        .populate({
+          path: 'tenancy',
+          populate: { path: 'property' }
+        })
+        .populate('creator');
+
+      return {
+        id: d!.id,
+        tenancy: d!.tenancy as any,
+        creator: d!.creator as any,
+        title: d!.title,
+        description: d!.description,
+        evidenceUrl: d!.evidenceUrl || null,
+        status: d!.status,
+        comments: [],
+        viewedByLandlordAt: d!.viewedByLandlordAt?.toISOString() || null,
+        viewedByTenantAt: d!.viewedByTenantAt?.toISOString() || null,
+        createdAt: (d as any).createdAt.toISOString(),
+        updatedAt: (d as any).updatedAt.toISOString()
+      };
+    },
+    addDisputeComment: async (_: any, { id, text }: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+
+      const d = await Dispute.findById(id).populate('tenancy');
+      if (!d) {
+        throw new Error('Dispute not found');
+      }
+
+      const tenancy = d.tenancy as any;
+      const property = await Property.findById(tenancy.property);
+      const isLandlordUser = property?.landlord.toString() === context.userId;
+      const isTenantUser = tenancy.tenant.toString() === context.userId;
+
+      if (!isLandlordUser && !isTenantUser) {
+        throw new Error('Unauthorized');
+      }
+
+      const newComment = {
+        sender: context.userId,
+        text,
+        createdAt: new Date()
+      };
+
+      d.comments.push(newComment as any);
+
+      if (isLandlordUser) {
+        d.viewedByTenantAt = undefined as any;
+      } else {
+        d.viewedByLandlordAt = undefined as any;
+      }
+
+      await d.save();
+
+      const opposingPartyId = isLandlordUser ? tenancy.tenant : property?.landlord;
+      const commentNotification = new Notification({
+        recipient: opposingPartyId,
+        title: 'New Dispute Comment',
+        message: `A new comment was added to the dispute regarding ${property?.title || 'your property'}.`,
+        link: `/app/disputes/${d.id}`
+      });
+      await commentNotification.save();
+
+      const populated = await Dispute.findById(d.id)
+        .populate({
+          path: 'tenancy',
+          populate: { path: 'property' }
+        })
+        .populate('creator')
+        .populate('comments.sender');
+
+      return {
+        id: populated!.id,
+        tenancy: populated!.tenancy as any,
+        creator: populated!.creator as any,
+        title: populated!.title,
+        description: populated!.description,
+        evidenceUrl: populated!.evidenceUrl || null,
+        status: populated!.status,
+        comments: populated!.comments.map((c: any) => ({
+          id: c.id || c._id?.toString(),
+          sender: c.sender as any,
+          text: c.text,
+          createdAt: c.createdAt.toISOString()
+        })),
+        viewedByLandlordAt: populated!.viewedByLandlordAt?.toISOString() || null,
+        viewedByTenantAt: populated!.viewedByTenantAt?.toISOString() || null,
+        createdAt: (populated as any).createdAt.toISOString(),
+        updatedAt: (populated as any).updatedAt.toISOString()
+      };
+    },
+    resolveDispute: async (_: any, { id }: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+
+      const d = await Dispute.findById(id).populate('tenancy');
+      if (!d) {
+        throw new Error('Dispute not found');
+      }
+
+      if (d.creator.toString() !== context.userId) {
+        throw new Error('Only the creator who filed this dispute can close it.');
+      }
+
+      d.status = 'RESOLVED';
+      await d.save();
+
+      const tenancy = d.tenancy as any;
+      const property = await Property.findById(tenancy.property);
+      const opposingPartyId = d.creator.toString() === tenancy.tenant.toString() ? property?.landlord : tenancy.tenant;
+
+      const resolveNotification = new Notification({
+        recipient: opposingPartyId,
+        title: 'Dispute Resolved & Closed',
+        message: `The dispute regarding ${property?.title || 'your property'} has been marked as resolved and closed.`,
+        link: `/app/disputes/${d.id}`
+      });
+      await resolveNotification.save();
+
+      const populated = await Dispute.findById(d.id)
+        .populate({
+          path: 'tenancy',
+          populate: { path: 'property' }
+        })
+        .populate('creator')
+        .populate('comments.sender');
+
+      return {
+        id: populated!.id,
+        tenancy: populated!.tenancy as any,
+        creator: populated!.creator as any,
+        title: populated!.title,
+        description: populated!.description,
+        evidenceUrl: populated!.evidenceUrl || null,
+        status: populated!.status,
+        comments: populated!.comments.map((c: any) => ({
+          id: c.id || c._id?.toString(),
+          sender: c.sender as any,
+          text: c.text,
+          createdAt: c.createdAt.toISOString()
+        })),
+        viewedByLandlordAt: populated!.viewedByLandlordAt?.toISOString() || null,
+        viewedByTenantAt: populated!.viewedByTenantAt?.toISOString() || null,
+        createdAt: (populated as any).createdAt.toISOString(),
+        updatedAt: (populated as any).updatedAt.toISOString()
       };
     },
   },

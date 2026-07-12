@@ -100,6 +100,28 @@ export const typeDefs = `#graphql
     updatedAt: String!
   }
 
+  type Comment {
+    id: ID!
+    sender: User!
+    text: String!
+    createdAt: String!
+  }
+
+  type Dispute {
+    id: ID!
+    tenancy: Application!
+    creator: User!
+    title: String!
+    description: String!
+    evidenceUrl: String
+    status: String!
+    comments: [Comment!]!
+    viewedByLandlordAt: String
+    viewedByTenantAt: String
+    createdAt: String!
+    updatedAt: String!
+  }
+
   input CreateApplicationInput {
     propertyId: ID!
     nationalIdUrl: String!
@@ -120,6 +142,8 @@ export const typeDefs = `#graphql
     myNotifications: [Notification!]!
     myTenancies: [Application!]!
     tenancy(id: ID!): Application
+    myDisputes: [Dispute!]!
+    dispute(id: ID!): Dispute
   }
 
   type Mutation {
@@ -135,5 +159,8 @@ export const typeDefs = `#graphql
     markNotificationAsRead(id: ID!): Notification!
     approveApplicationWithAgreement(id: ID!, agreementUrl: String!): Application!
     submitSignedAgreement(id: ID!, signedAgreementUrl: String!): Application!
+    createDispute(tenancyId: ID!, title: String!, description: String!, evidenceUrl: String): Dispute!
+    addDisputeComment(id: ID!, text: String!): Dispute!
+    resolveDispute(id: ID!): Dispute!
   }
 `;
