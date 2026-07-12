@@ -401,8 +401,14 @@ export const resolvers: Resolvers = {
             userType: landlordVal.userType,
             phone: landlordVal.phone,
             savedProperties: [],
-            createdAt: typeof landlordVal.createdAt === 'string' ? landlordVal.createdAt : (landlordVal.createdAt?.toISOString() || new Date().toISOString()),
-            updatedAt: typeof landlordVal.updatedAt === 'string' ? landlordVal.updatedAt : (landlordVal.updatedAt?.toISOString() || new Date().toISOString()),
+            createdAt:
+              typeof landlordVal.createdAt === 'string'
+                ? landlordVal.createdAt
+                : landlordVal.createdAt?.toISOString() || new Date().toISOString(),
+            updatedAt:
+              typeof landlordVal.updatedAt === 'string'
+                ? landlordVal.updatedAt
+                : landlordVal.updatedAt?.toISOString() || new Date().toISOString(),
           };
         }
       }
@@ -514,8 +520,14 @@ export const resolvers: Resolvers = {
             userType: tenantVal.userType,
             phone: tenantVal.phone,
             savedProperties: [],
-            createdAt: typeof tenantVal.createdAt === 'string' ? tenantVal.createdAt : (tenantVal.createdAt?.toISOString() || new Date().toISOString()),
-            updatedAt: typeof tenantVal.updatedAt === 'string' ? tenantVal.updatedAt : (tenantVal.updatedAt?.toISOString() || new Date().toISOString()),
+            createdAt:
+              typeof tenantVal.createdAt === 'string'
+                ? tenantVal.createdAt
+                : tenantVal.createdAt?.toISOString() || new Date().toISOString(),
+            updatedAt:
+              typeof tenantVal.updatedAt === 'string'
+                ? tenantVal.updatedAt
+                : tenantVal.updatedAt?.toISOString() || new Date().toISOString(),
           };
         }
       }
