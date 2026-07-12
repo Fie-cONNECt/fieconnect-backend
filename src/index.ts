@@ -18,17 +18,17 @@ const server = new ApolloServer({
   resolvers,
 });
 
+// Apply CORS globally before anything else
+app.use(cors({ origin: true, credentials: true }));
+
+// Handle preflight OPTIONS requests explicitly for Vercel serverless
+app.options('*', cors({ origin: true, credentials: true }));
+
+app.use(express.json());
+
 const startServer = async () => {
   await connectDB();
   await server.start();
-
-  // app.use(
-  //   cors({
-  //     origin: true,
-  //     credentials: true,
-  //   }),
-  // );
-  app.use(express.json());
 
   app.use(
     '/graphql',
