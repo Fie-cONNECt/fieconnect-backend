@@ -13,10 +13,12 @@ const applicationSchema = new Schema(
     personalStatement: { type: String, required: true },
     status: {
       type: String,
-      enum: ['PENDING', 'APPROVED', 'REJECTED'],
+      enum: ['PENDING', 'APPROVED', 'REJECTED', 'INFORMATION_REQUESTED'],
       default: 'PENDING',
       required: true,
     },
+    furtherDetailsRequest: { type: String },
+    furtherDetailsResponse: { type: String },
   },
   {
     timestamps: true,
