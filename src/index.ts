@@ -19,10 +19,10 @@ const server = new ApolloServer({
 });
 
 // Apply CORS globally before anything else
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 
 // Handle preflight OPTIONS requests explicitly for Vercel serverless
-app.options('*', cors());
+app.options('*', cors({ origin: true, credentials: true }));
 
 app.use(express.json());
 
