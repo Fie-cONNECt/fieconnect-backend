@@ -22,12 +22,12 @@ const startServer = async () => {
   await connectDB();
   await server.start();
 
-  app.use(
-    cors({
-      origin: true,
-      credentials: true,
-    }),
-  );
+  // app.use(
+  //   cors({
+  //     origin: true,
+  //     credentials: true,
+  //   }),
+  // );
   app.use(express.json());
 
   app.use(
