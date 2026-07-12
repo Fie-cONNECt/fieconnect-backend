@@ -20,17 +20,76 @@ export type Scalars = {
   Float: { input: number; output: number };
 };
 
+export type Application = {
+  __typename?: 'Application';
+  createdAt: Scalars['String']['output'];
+  employerName: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  jobTitle: Scalars['String']['output'];
+  lengthOfEmployment: Scalars['String']['output'];
+  monthlyIncome: Scalars['String']['output'];
+  nationalIdUrl: Scalars['String']['output'];
+  personalStatement: Scalars['String']['output'];
+  property: Property;
+  status: Scalars['String']['output'];
+  supportingDocsUrl?: Maybe<Scalars['String']['output']>;
+  tenant: User;
+  updatedAt: Scalars['String']['output'];
+};
+
 export type AuthPayload = {
   __typename?: 'AuthPayload';
   token: Scalars['String']['output'];
   user: User;
 };
 
+export type CreateApplicationInput = {
+  employerName: Scalars['String']['input'];
+  jobTitle: Scalars['String']['input'];
+  lengthOfEmployment: Scalars['String']['input'];
+  monthlyIncome: Scalars['String']['input'];
+  nationalIdUrl: Scalars['String']['input'];
+  personalStatement: Scalars['String']['input'];
+  propertyId: Scalars['ID']['input'];
+  supportingDocsUrl?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CreatePropertyInput = {
+  about: Scalars['String']['input'];
+  agreementUrl?: InputMaybe<Scalars['String']['input']>;
+  amenities: Array<Scalars['String']['input']>;
+  bathroomImage: Scalars['String']['input'];
+  bathrooms: Scalars['String']['input'];
+  bedroomImage: Scalars['String']['input'];
+  bedrooms: Scalars['String']['input'];
+  district: Scalars['String']['input'];
+  image: Scalars['String']['input'];
+  kitchenImage: Scalars['String']['input'];
+  location: Scalars['String']['input'];
+  parking: Scalars['String']['input'];
+  price: Scalars['Float']['input'];
+  region: Scalars['String']['input'];
+  size: Scalars['String']['input'];
+  title: Scalars['String']['input'];
+  type: Scalars['String']['input'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
+  createApplication: Application;
+  createProperty: Property;
   login: AuthPayload;
   logout: Scalars['Boolean']['output'];
   register: AuthPayload;
+  toggleSaveProperty: User;
+};
+
+export type MutationCreateApplicationArgs = {
+  input: CreateApplicationInput;
+};
+
+export type MutationCreatePropertyArgs = {
+  input: CreatePropertyInput;
 };
 
 export type MutationLoginArgs = {
@@ -47,9 +106,55 @@ export type MutationRegisterArgs = {
   userType: Scalars['String']['input'];
 };
 
+export type MutationToggleSavePropertyArgs = {
+  propertyId: Scalars['ID']['input'];
+};
+
+export type Property = {
+  __typename?: 'Property';
+  about: Scalars['String']['output'];
+  agreementUrl?: Maybe<Scalars['String']['output']>;
+  amenities: Array<Scalars['String']['output']>;
+  bathrooms: Scalars['String']['output'];
+  bedrooms: Scalars['String']['output'];
+  createdAt: Scalars['String']['output'];
+  district: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  image: Scalars['String']['output'];
+  images: PropertyImages;
+  landlord: User;
+  lat?: Maybe<Scalars['Float']['output']>;
+  lng?: Maybe<Scalars['Float']['output']>;
+  location: Scalars['String']['output'];
+  mapDescription?: Maybe<Scalars['String']['output']>;
+  parking: Scalars['String']['output'];
+  price: Scalars['Float']['output'];
+  region: Scalars['String']['output'];
+  size: Scalars['String']['output'];
+  title: Scalars['String']['output'];
+  type: Scalars['String']['output'];
+  updatedAt: Scalars['String']['output'];
+  verified: Scalars['Boolean']['output'];
+};
+
+export type PropertyImages = {
+  __typename?: 'PropertyImages';
+  bathroom: Scalars['String']['output'];
+  bedroom: Scalars['String']['output'];
+  kitchen: Scalars['String']['output'];
+  main: Scalars['String']['output'];
+};
+
 export type Query = {
   __typename?: 'Query';
   me?: Maybe<User>;
+  myApplications: Array<Application>;
+  myProperties: Array<Property>;
+  property?: Maybe<Property>;
+};
+
+export type QueryPropertyArgs = {
+  id: Scalars['ID']['input'];
 };
 
 export type User = {
@@ -60,6 +165,7 @@ export type User = {
   id: Scalars['ID']['output'];
   lastName: Scalars['String']['output'];
   phone: Scalars['String']['output'];
+  savedProperties: Array<Property>;
   updatedAt: Scalars['String']['output'];
   userType: Scalars['String']['output'];
 };
@@ -151,10 +257,16 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
+  Application: ResolverTypeWrapper<Application>;
   AuthPayload: ResolverTypeWrapper<AuthPayload>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  CreateApplicationInput: CreateApplicationInput;
+  CreatePropertyInput: CreatePropertyInput;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Mutation: ResolverTypeWrapper<{}>;
+  Property: ResolverTypeWrapper<Property>;
+  PropertyImages: ResolverTypeWrapper<PropertyImages>;
   Query: ResolverTypeWrapper<{}>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   User: ResolverTypeWrapper<User>;
@@ -162,13 +274,39 @@ export type ResolversTypes = ResolversObject<{
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
+  Application: Application;
   AuthPayload: AuthPayload;
   Boolean: Scalars['Boolean']['output'];
+  CreateApplicationInput: CreateApplicationInput;
+  CreatePropertyInput: CreatePropertyInput;
+  Float: Scalars['Float']['output'];
   ID: Scalars['ID']['output'];
   Mutation: {};
+  Property: Property;
+  PropertyImages: PropertyImages;
   Query: {};
   String: Scalars['String']['output'];
   User: User;
+}>;
+
+export type ApplicationResolvers<
+  ContextType = AuthContext,
+  ParentType extends ResolversParentTypes['Application'] = ResolversParentTypes['Application'],
+> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  employerName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  jobTitle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  lengthOfEmployment?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  monthlyIncome?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  nationalIdUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  personalStatement?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  property?: Resolver<ResolversTypes['Property'], ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  supportingDocsUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  tenant?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type AuthPayloadResolvers<
@@ -184,6 +322,18 @@ export type MutationResolvers<
   ContextType = AuthContext,
   ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation'],
 > = ResolversObject<{
+  createApplication?: Resolver<
+    ResolversTypes['Application'],
+    ParentType,
+    ContextType,
+    RequireFields<MutationCreateApplicationArgs, 'input'>
+  >;
+  createProperty?: Resolver<
+    ResolversTypes['Property'],
+    ParentType,
+    ContextType,
+    RequireFields<MutationCreatePropertyArgs, 'input'>
+  >;
   login?: Resolver<
     ResolversTypes['AuthPayload'],
     ParentType,
@@ -200,6 +350,54 @@ export type MutationResolvers<
       'email' | 'firstName' | 'lastName' | 'password' | 'phone' | 'userType'
     >
   >;
+  toggleSaveProperty?: Resolver<
+    ResolversTypes['User'],
+    ParentType,
+    ContextType,
+    RequireFields<MutationToggleSavePropertyArgs, 'propertyId'>
+  >;
+}>;
+
+export type PropertyResolvers<
+  ContextType = AuthContext,
+  ParentType extends ResolversParentTypes['Property'] = ResolversParentTypes['Property'],
+> = ResolversObject<{
+  about?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  agreementUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  amenities?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  bathrooms?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  bedrooms?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  district?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  image?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  images?: Resolver<ResolversTypes['PropertyImages'], ParentType, ContextType>;
+  landlord?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  lat?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  lng?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  location?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  mapDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  parking?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  price?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  region?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  size?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  verified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type PropertyImagesResolvers<
+  ContextType = AuthContext,
+  ParentType extends ResolversParentTypes['PropertyImages'] =
+    ResolversParentTypes['PropertyImages'],
+> = ResolversObject<{
+  bathroom?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  bedroom?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  kitchen?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  main?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type QueryResolvers<
@@ -207,6 +405,14 @@ export type QueryResolvers<
   ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query'],
 > = ResolversObject<{
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  myApplications?: Resolver<Array<ResolversTypes['Application']>, ParentType, ContextType>;
+  myProperties?: Resolver<Array<ResolversTypes['Property']>, ParentType, ContextType>;
+  property?: Resolver<
+    Maybe<ResolversTypes['Property']>,
+    ParentType,
+    ContextType,
+    RequireFields<QueryPropertyArgs, 'id'>
+  >;
 }>;
 
 export type UserResolvers<
@@ -219,14 +425,18 @@ export type UserResolvers<
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   lastName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   phone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  savedProperties?: Resolver<Array<ResolversTypes['Property']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   userType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type Resolvers<ContextType = AuthContext> = ResolversObject<{
+  Application?: ApplicationResolvers<ContextType>;
   AuthPayload?: AuthPayloadResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
+  Property?: PropertyResolvers<ContextType>;
+  PropertyImages?: PropertyImagesResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
 }>;
