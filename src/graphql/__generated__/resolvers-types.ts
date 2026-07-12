@@ -19,6 +19,7 @@ export type Scalars = {
 
 export type Application = {
   __typename?: 'Application';
+  agreementUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['String']['output'];
   employerName: Scalars['String']['output'];
   furtherDetailsRequest?: Maybe<Scalars['String']['output']>;
@@ -30,6 +31,7 @@ export type Application = {
   nationalIdUrl: Scalars['String']['output'];
   personalStatement: Scalars['String']['output'];
   property: Property;
+  signedAgreementUrl?: Maybe<Scalars['String']['output']>;
   status: Scalars['String']['output'];
   supportingDocsUrl?: Maybe<Scalars['String']['output']>;
   tenant: User;
@@ -75,6 +77,7 @@ export type CreatePropertyInput = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  approveApplicationWithAgreement: Application;
   createApplication: Application;
   createProperty: Property;
   login: AuthPayload;
@@ -83,8 +86,15 @@ export type Mutation = {
   register: AuthPayload;
   requestFurtherDetails: Application;
   submitFurtherDetails: Application;
+  submitSignedAgreement: Application;
   toggleSaveProperty: User;
   updateApplicationStatus: Application;
+};
+
+
+export type MutationApproveApplicationWithAgreementArgs = {
+  agreementUrl: Scalars['String']['input'];
+  id: Scalars['ID']['input'];
 };
 
 
@@ -128,6 +138,12 @@ export type MutationRequestFurtherDetailsArgs = {
 export type MutationSubmitFurtherDetailsArgs = {
   id: Scalars['ID']['input'];
   response: Scalars['String']['input'];
+};
+
+
+export type MutationSubmitSignedAgreementArgs = {
+  id: Scalars['ID']['input'];
+  signedAgreementUrl: Scalars['String']['input'];
 };
 
 
@@ -323,6 +339,7 @@ export type ResolversParentTypes = ResolversObject<{
 }>;
 
 export type ApplicationResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['Application'] = ResolversParentTypes['Application']> = ResolversObject<{
+  agreementUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   employerName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   furtherDetailsRequest?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -334,6 +351,7 @@ export type ApplicationResolvers<ContextType = AuthContext, ParentType extends R
   nationalIdUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   personalStatement?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   property?: Resolver<ResolversTypes['Property'], ParentType, ContextType>;
+  signedAgreementUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   status?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   supportingDocsUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   tenant?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
@@ -348,6 +366,7 @@ export type AuthPayloadResolvers<ContextType = AuthContext, ParentType extends R
 }>;
 
 export type MutationResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
+  approveApplicationWithAgreement?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationApproveApplicationWithAgreementArgs, 'agreementUrl' | 'id'>>;
   createApplication?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationCreateApplicationArgs, 'input'>>;
   createProperty?: Resolver<ResolversTypes['Property'], ParentType, ContextType, RequireFields<MutationCreatePropertyArgs, 'input'>>;
   login?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationLoginArgs, 'email' | 'password'>>;
@@ -356,6 +375,7 @@ export type MutationResolvers<ContextType = AuthContext, ParentType extends Reso
   register?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationRegisterArgs, 'email' | 'firstName' | 'lastName' | 'password' | 'phone' | 'userType'>>;
   requestFurtherDetails?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationRequestFurtherDetailsArgs, 'id' | 'message'>>;
   submitFurtherDetails?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationSubmitFurtherDetailsArgs, 'id' | 'response'>>;
+  submitSignedAgreement?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationSubmitSignedAgreementArgs, 'id' | 'signedAgreementUrl'>>;
   toggleSaveProperty?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<MutationToggleSavePropertyArgs, 'propertyId'>>;
   updateApplicationStatus?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationUpdateApplicationStatusArgs, 'id' | 'status'>>;
 }>;
