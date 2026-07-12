@@ -24,7 +24,15 @@ const REGIONS = [
   'Western North',
 ];
 
-const PROPERTY_TYPES = ['Apartment', 'House', 'Studio', 'Villa', 'Townhouse', 'Duplex', 'Penthouse'];
+const PROPERTY_TYPES = [
+  'Apartment',
+  'House',
+  'Studio',
+  'Villa',
+  'Townhouse',
+  'Duplex',
+  'Penthouse',
+];
 
 const MAIN_IMAGES = [
   'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&auto=format&fit=crop',
@@ -36,12 +44,23 @@ const MAIN_IMAGES = [
   'https://images.unsplash.com/photo-1484154218962-a197022b5858?q=80&w=800&auto=format&fit=crop',
 ];
 
-const KITCHEN_IMAGE = 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=600&auto=format&fit=crop';
-const BEDROOM_IMAGE = 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?q=80&w=600&auto=format&fit=crop';
-const BATHROOM_IMAGE = 'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?q=80&w=600&auto=format&fit=crop';
+const KITCHEN_IMAGE =
+  'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=600&auto=format&fit=crop';
+const BEDROOM_IMAGE =
+  'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?q=80&w=600&auto=format&fit=crop';
+const BATHROOM_IMAGE =
+  'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?q=80&w=600&auto=format&fit=crop';
 
 const DISTRICTS: Record<string, string[]> = {
-  'Greater Accra': ['Airport Residential', 'Cantonments', 'East Legon', 'Osu', 'Labone', 'Roman Ridge', 'Tema'],
+  'Greater Accra': [
+    'Airport Residential',
+    'Cantonments',
+    'East Legon',
+    'Osu',
+    'Labone',
+    'Roman Ridge',
+    'Tema',
+  ],
   Ashanti: ['Kumasi Nhyiaeso', 'Adum', 'Patasi', 'Ahodwo'],
   Western: ['Takoradi Anaji', 'Effiakuma', 'Kwesimintin'],
   Eastern: ['Koforidua', 'Aburi', 'Nkawkaw'],
@@ -71,7 +90,16 @@ const AMENITIES = [
   'Spacious Balcony',
 ];
 
-const ADJECTIVES = ['Premium', 'Luxury', 'Executive', 'Cozy', 'Elegant', 'Modern', 'Spacious', 'Stunning'];
+const ADJECTIVES = [
+  'Premium',
+  'Luxury',
+  'Executive',
+  'Cozy',
+  'Elegant',
+  'Modern',
+  'Spacious',
+  'Stunning',
+];
 
 async function seed() {
   // Connect DB
@@ -120,7 +148,9 @@ async function seed() {
     const about = `This outstanding ${bedrooms}-bedroom ${type.toLowerCase()} situated in ${district} offers exceptional premium living. Featuring beautiful modern architectural details, high-end amenities, and excellent layout design for perfect convenience and accessibility.`;
 
     // Choose 3-5 random amenities
-    const selectedAmenities = AMENITIES.filter((_, idx) => (idx + i) % 3 === 0 || (idx + i) % 4 === 0);
+    const selectedAmenities = AMENITIES.filter(
+      (_, idx) => (idx + i) % 3 === 0 || (idx + i) % 4 === 0,
+    );
 
     const image = MAIN_IMAGES[i % MAIN_IMAGES.length];
 
