@@ -103,6 +103,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   addDisputeComment: Dispute;
   approveApplicationWithAgreement: Application;
+  changePassword: Scalars['Boolean']['output'];
   createApplication: Application;
   createDispute: Dispute;
   createProperty: Property;
@@ -129,6 +130,12 @@ export type MutationAddDisputeCommentArgs = {
 export type MutationApproveApplicationWithAgreementArgs = {
   agreementUrl: Scalars['String']['input'];
   id: Scalars['ID']['input'];
+};
+
+
+export type MutationChangePasswordArgs = {
+  currentPassword: Scalars['String']['input'];
+  newPassword: Scalars['String']['input'];
 };
 
 
@@ -468,6 +475,7 @@ export type DisputeResolvers<ContextType = AuthContext, ParentType extends Resol
 export type MutationResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
   addDisputeComment?: Resolver<ResolversTypes['Dispute'], ParentType, ContextType, RequireFields<MutationAddDisputeCommentArgs, 'id' | 'text'>>;
   approveApplicationWithAgreement?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationApproveApplicationWithAgreementArgs, 'agreementUrl' | 'id'>>;
+  changePassword?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType, RequireFields<MutationChangePasswordArgs, 'currentPassword' | 'newPassword'>>;
   createApplication?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationCreateApplicationArgs, 'input'>>;
   createDispute?: Resolver<ResolversTypes['Dispute'], ParentType, ContextType, RequireFields<MutationCreateDisputeArgs, 'description' | 'tenancyId' | 'title'>>;
   createProperty?: Resolver<ResolversTypes['Property'], ParentType, ContextType, RequireFields<MutationCreatePropertyArgs, 'input'>>;

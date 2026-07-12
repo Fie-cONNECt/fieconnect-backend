@@ -165,5 +165,6 @@ export const typeDefs = `#graphql
     addDisputeComment(id: ID!, text: String!): Dispute!
     resolveDispute(id: ID!): Dispute!
     updateProfile(firstName: String, lastName: String, phone: String, bio: String, avatarUrl: String): User!
+    changePassword(currentPassword: String!, newPassword: String!): Boolean!
   }
 `;

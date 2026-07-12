@@ -473,6 +473,27 @@ export const resolvers: Resolvers = {
         updatedAt: (user as any).updatedAt.toISOString(),
       };
     },
+    changePassword: async (_: any, { currentPassword, newPassword }: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const user = await User.findById(context.userId);
+      if (!user) throw new Error('User not found');
+
+      const isMatch = await (user as any).comparePassword(currentPassword);
+      if (!isMatch) {
+        throw new Error('Current password is incorrect.');
+      }
+
+      if (newPassword.length < 8) {
+        throw new Error('New password must be at least 8 characters.');
+      }
+
+      user.password = newPassword;
+      await user.save(); // pre-save hook will hash it
+
+      return true;
+    },
     logout: async (_, __, context) => {
       if (context.res) {
         context.res.setHeader(
