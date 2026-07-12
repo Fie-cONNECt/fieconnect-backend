@@ -70,6 +70,46 @@ export const resolvers: Resolvers = {
         updatedAt: (prop as any).updatedAt.toISOString(),
       }));
     },
+    properties: async (_: any, { region, type, minPrice, maxPrice }: any) => {
+      const filter: any = {};
+      if (region && region !== 'All') filter.region = { $regex: region, $options: 'i' };
+      if (type && type !== 'All') filter.type = { $regex: type, $options: 'i' };
+      if (minPrice !== undefined || maxPrice !== undefined) {
+        filter.price = {};
+        if (minPrice !== undefined) filter.price.$gte = minPrice;
+        if (maxPrice !== undefined) filter.price.$lte = maxPrice;
+      }
+      const properties = await Property.find(filter).sort({ createdAt: -1 }).limit(50);
+      return properties.map((prop) => ({
+        id: prop.id,
+        title: prop.title,
+        type: prop.type,
+        location: prop.location,
+        region: prop.region,
+        district: prop.district,
+        price: prop.price,
+        verified: prop.verified,
+        bedrooms: prop.bedrooms,
+        bathrooms: prop.bathrooms,
+        size: prop.size,
+        parking: prop.parking,
+        about: prop.about,
+        amenities: prop.amenities,
+        lat: prop.lat,
+        lng: prop.lng,
+        image: prop.image,
+        images: {
+          main: prop.images?.main || prop.image,
+          kitchen: prop.images?.kitchen || '',
+          bedroom: prop.images?.bedroom || '',
+          bathroom: prop.images?.bathroom || '',
+        },
+        agreementUrl: prop.agreementUrl || null,
+        landlord: prop.landlord as any,
+        createdAt: (prop as any).createdAt.toISOString(),
+        updatedAt: (prop as any).updatedAt.toISOString(),
+      }));
+    },
     property: async (_, { id }) => {
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return null;
