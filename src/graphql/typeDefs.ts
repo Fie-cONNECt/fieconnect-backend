@@ -1,4 +1,25 @@
 export const typeDefs = `#graphql
+  type UserPreferences {
+    regions: [String!]!
+    districts: [String!]!
+    types: [String!]!
+    minPrice: Float
+    maxPrice: Float
+    bedrooms: [String!]!
+    amenities: [String!]!
+    onboardingStatus: String!
+  }
+
+  input PreferencesInput {
+    regions: [String!]
+    districts: [String!]
+    types: [String!]
+    minPrice: Float
+    maxPrice: Float
+    bedrooms: [String!]
+    amenities: [String!]
+  }
+
   type User {
     id: ID!
     firstName: String!
@@ -9,6 +30,7 @@ export const typeDefs = `#graphql
     avatarUrl: String
     bio: String
     savedProperties: [Property!]!
+    preferences: UserPreferences!
     createdAt: String!
     updatedAt: String!
   }
@@ -155,6 +177,8 @@ export const typeDefs = `#graphql
     logout: Boolean!
     createProperty(input: CreatePropertyInput!): Property!
     toggleSaveProperty(propertyId: ID!): User!
+    savePreferences(input: PreferencesInput!): User!
+    skipPreferences: User!
     createApplication(input: CreateApplicationInput!): Application!
     updateApplicationStatus(id: ID!, status: String!): Application!
     requestFurtherDetails(id: ID!, message: String!): Application!

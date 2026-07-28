@@ -6,6 +6,7 @@ import { Dispute } from '../models/Dispute';
 import jwt from 'jsonwebtoken';
 import { Resolvers } from './__generated__/resolvers-types';
 import mongoose from 'mongoose';
+import { formatUser, formatProperty, formatPreferences } from './formatters';
 
 const generateToken = (userId: string, email: string) => {
   return jwt.sign({ userId, email }, process.env.JWT_SECRET || 'fallback_secret', {
@@ -21,19 +22,7 @@ export const resolvers: Resolvers = {
       }
       const user = await User.findById(context.userId);
       if (!user) return null;
-      return {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        userType: user.userType,
-        phone: user.phone,
-        avatarUrl: (user as any).avatarUrl || null,
-        bio: (user as any).bio || null,
-        savedProperties: [],
-        createdAt: (user as any).createdAt.toISOString(),
-        updatedAt: (user as any).updatedAt.toISOString(),
-      };
+      return formatUser(user);
     },
     myProperties: async (_, __, context) => {
       if (!context.userId) {
@@ -152,6 +141,7 @@ export const resolvers: Resolvers = {
               userType: landlord.userType,
               phone: landlord.phone,
               savedProperties: [],
+              preferences: formatPreferences(null),
               createdAt: landlord.createdAt?.toISOString() || new Date().toISOString(),
               updatedAt: landlord.updatedAt?.toISOString() || new Date().toISOString(),
             }
@@ -163,6 +153,7 @@ export const resolvers: Resolvers = {
               userType: 'LANDLORD',
               phone: '',
               savedProperties: [],
+              preferences: formatPreferences(null),
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             },
@@ -423,6 +414,16 @@ export const resolvers: Resolvers = {
         password,
         userType,
         phone,
+        preferences: {
+          regions: [],
+          districts: [],
+          types: [],
+          minPrice: null,
+          maxPrice: null,
+          bedrooms: [],
+          amenities: [],
+          onboardingStatus: userType === 'LANDLORD' ? 'COMPLETED' : 'PENDING',
+        },
       });
       await user.save();
 
@@ -437,17 +438,7 @@ export const resolvers: Resolvers = {
 
       return {
         token,
-        user: {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          userType: user.userType,
-          phone: user.phone,
-          savedProperties: [],
-          createdAt: user.createdAt.toISOString(),
-          updatedAt: user.updatedAt.toISOString(),
-        },
+        user: formatUser(user),
       };
     },
     login: async (_, { email, password }, context) => {
@@ -472,17 +463,7 @@ export const resolvers: Resolvers = {
 
       return {
         token,
-        user: {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          userType: user.userType,
-          phone: user.phone,
-          savedProperties: [],
-          createdAt: user.createdAt.toISOString(),
-          updatedAt: user.updatedAt.toISOString(),
-        },
+        user: formatUser(user),
       };
     },
     updateProfile: async (
@@ -504,19 +485,7 @@ export const resolvers: Resolvers = {
 
       await user.save();
 
-      return {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        userType: user.userType,
-        phone: user.phone,
-        avatarUrl: (user as any).avatarUrl || null,
-        bio: (user as any).bio || null,
-        savedProperties: [],
-        createdAt: (user as any).createdAt.toISOString(),
-        updatedAt: (user as any).updatedAt.toISOString(),
-      };
+      return formatUser(user);
     },
     changePassword: async (_: any, { currentPassword, newPassword }: any, context: any) => {
       if (!context.userId) {
@@ -648,17 +617,56 @@ export const resolvers: Resolvers = {
 
       await user.save();
 
-      return {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        userType: user.userType,
-        phone: user.phone,
-        savedProperties: [],
-        createdAt: user.createdAt.toISOString(),
-        updatedAt: user.updatedAt.toISOString(),
-      };
+      return formatUser(user);
+    },
+    savePreferences: async (_: any, { input }: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const user = await User.findById(context.userId);
+      if (!user) throw new Error('User not found');
+      if (user.userType !== 'TENANT') {
+        throw new Error('Only tenants can save housing preferences');
+      }
+
+      const prefs = (user as any).preferences || {};
+      if (input.regions !== undefined) prefs.regions = input.regions;
+      if (input.districts !== undefined) prefs.districts = input.districts;
+      if (input.types !== undefined) prefs.types = input.types;
+      if (input.minPrice !== undefined) prefs.minPrice = input.minPrice;
+      if (input.maxPrice !== undefined) prefs.maxPrice = input.maxPrice;
+      if (input.bedrooms !== undefined) prefs.bedrooms = input.bedrooms;
+      if (input.amenities !== undefined) prefs.amenities = input.amenities;
+      prefs.onboardingStatus = 'COMPLETED';
+      (user as any).preferences = prefs;
+      await user.save();
+
+      return formatUser(user);
+    },
+    skipPreferences: async (_: any, __: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const user = await User.findById(context.userId);
+      if (!user) throw new Error('User not found');
+
+      if (!(user as any).preferences) {
+        (user as any).preferences = {
+          regions: [],
+          districts: [],
+          types: [],
+          minPrice: null,
+          maxPrice: null,
+          bedrooms: [],
+          amenities: [],
+          onboardingStatus: 'SKIPPED',
+        };
+      } else {
+        (user as any).preferences.onboardingStatus = 'SKIPPED';
+      }
+      await user.save();
+
+      return formatUser(user);
     },
     createApplication: async (_, { input }, context) => {
       if (!context.userId) {
@@ -1167,6 +1175,7 @@ export const resolvers: Resolvers = {
             userType: landlordVal.userType,
             phone: landlordVal.phone,
             savedProperties: [],
+            preferences: formatPreferences(null),
             createdAt:
               typeof landlordVal.createdAt === 'string'
                 ? landlordVal.createdAt
@@ -1191,46 +1200,31 @@ export const resolvers: Resolvers = {
         userType: user.userType,
         phone: user.phone,
         savedProperties: [],
+        preferences: formatPreferences(null),
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       };
     },
   },
   User: {
+    preferences: (parent) => {
+      return {
+        regions: (parent as any).preferences?.regions ?? [],
+        districts: (parent as any).preferences?.districts ?? [],
+        types: (parent as any).preferences?.types ?? [],
+        minPrice: (parent as any).preferences?.minPrice ?? null,
+        maxPrice: (parent as any).preferences?.maxPrice ?? null,
+        bedrooms: (parent as any).preferences?.bedrooms ?? [],
+        amenities: (parent as any).preferences?.amenities ?? [],
+        onboardingStatus: (parent as any).preferences?.onboardingStatus ?? 'PENDING',
+      };
+    },
     savedProperties: async (parent) => {
       const userId = parent.id || (parent as any)._id;
       const user = await User.findById(userId);
       if (!user || !user.savedProperties) return [];
       const properties = await Property.find({ _id: { $in: user.savedProperties } });
-      return properties.map((prop) => ({
-        id: prop.id,
-        title: prop.title,
-        type: prop.type,
-        location: prop.location,
-        region: prop.region,
-        district: prop.district,
-        price: prop.price,
-        verified: prop.verified,
-        bedrooms: prop.bedrooms,
-        bathrooms: prop.bathrooms,
-        size: prop.size,
-        parking: prop.parking,
-        about: prop.about,
-        amenities: prop.amenities,
-        lat: prop.lat,
-        lng: prop.lng,
-        image: prop.image,
-        images: {
-          main: prop.images?.main || prop.image,
-          kitchen: prop.images?.kitchen || '',
-          bedroom: prop.images?.bedroom || '',
-          bathroom: prop.images?.bathroom || '',
-        },
-        agreementUrl: prop.agreementUrl || null,
-        landlord: prop.landlord as any,
-        createdAt: (prop as any).createdAt.toISOString(),
-        updatedAt: (prop as any).updatedAt.toISOString(),
-      }));
+      return properties.map((prop) => formatProperty(prop));
     },
   },
   Application: {
@@ -1286,6 +1280,7 @@ export const resolvers: Resolvers = {
             userType: tenantVal.userType,
             phone: tenantVal.phone,
             savedProperties: [],
+            preferences: formatPreferences(null),
             createdAt:
               typeof tenantVal.createdAt === 'string'
                 ? tenantVal.createdAt
@@ -1310,6 +1305,7 @@ export const resolvers: Resolvers = {
         userType: user.userType,
         phone: user.phone,
         savedProperties: [],
+        preferences: formatPreferences(null),
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       };
@@ -1329,6 +1325,7 @@ export const resolvers: Resolvers = {
             userType: recipientVal.userType,
             phone: recipientVal.phone,
             savedProperties: [],
+            preferences: formatPreferences(null),
             createdAt:
               typeof recipientVal.createdAt === 'string'
                 ? recipientVal.createdAt
@@ -1353,6 +1350,7 @@ export const resolvers: Resolvers = {
         userType: user.userType,
         phone: user.phone,
         savedProperties: [],
+        preferences: formatPreferences(null),
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       };
