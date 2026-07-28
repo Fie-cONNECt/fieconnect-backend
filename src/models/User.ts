@@ -1,6 +1,24 @@
 import { Schema, model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+const preferencesSchema = new Schema(
+  {
+    regions: { type: [String], default: [] },
+    districts: { type: [String], default: [] },
+    types: { type: [String], default: [] },
+    minPrice: { type: Number, default: null },
+    maxPrice: { type: Number, default: null },
+    bedrooms: { type: [String], default: [] },
+    amenities: { type: [String], default: [] },
+    onboardingStatus: {
+      type: String,
+      enum: ['PENDING', 'COMPLETED', 'SKIPPED'],
+      default: 'PENDING',
+    },
+  },
+  { _id: false },
+);
+
 const userSchema = new Schema(
   {
     firstName: { type: String, required: true },
@@ -12,6 +30,19 @@ const userSchema = new Schema(
     avatarUrl: { type: String, default: null },
     bio: { type: String, default: null },
     savedProperties: [{ type: Schema.Types.ObjectId, ref: 'Property', default: [] }],
+    preferences: {
+      type: preferencesSchema,
+      default: () => ({
+        regions: [],
+        districts: [],
+        types: [],
+        minPrice: null,
+        maxPrice: null,
+        bedrooms: [],
+        amenities: [],
+        onboardingStatus: 'PENDING',
+      }),
+    },
   },
   {
     timestamps: true,
