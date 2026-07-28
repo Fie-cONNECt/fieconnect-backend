@@ -161,6 +161,7 @@ export const typeDefs = `#graphql
     me: User
     myProperties: [Property!]!
     properties(region: String, type: String, minPrice: Float, maxPrice: Float): [Property!]!
+    recommendedProperties(limit: Int): [Property!]!
     property(id: ID!): Property
     myApplications: [Application!]!
     receivedApplications: [Application!]!

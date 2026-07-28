@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import { Resolvers } from './__generated__/resolvers-types';
 import mongoose from 'mongoose';
 import { formatUser, formatProperty, formatPreferences } from './formatters';
+import { recommendPropertiesForUser } from '../services/recommendProperties';
 
 const generateToken = (userId: string, email: string) => {
   return jwt.sign({ userId, email }, process.env.JWT_SECRET || 'fallback_secret', {
@@ -23,6 +24,12 @@ export const resolvers: Resolvers = {
       const user = await User.findById(context.userId);
       if (!user) return null;
       return formatUser(user);
+    },
+    recommendedProperties: async (_: any, { limit }: { limit?: number | null }, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      return recommendPropertiesForUser(context.userId, limit ?? 12);
     },
     myProperties: async (_, __, context) => {
       if (!context.userId) {

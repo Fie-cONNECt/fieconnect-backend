@@ -296,6 +296,7 @@ export type Query = {
   properties: Array<Property>;
   property?: Maybe<Property>;
   receivedApplications: Array<Application>;
+  recommendedProperties: Array<Property>;
   tenancy?: Maybe<Application>;
 };
 
@@ -315,6 +316,11 @@ export type QueryPropertiesArgs = {
 
 export type QueryPropertyArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryRecommendedPropertiesArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -431,6 +437,7 @@ export type ResolversTypes = ResolversObject<{
   Dispute: ResolverTypeWrapper<Dispute>;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   Mutation: ResolverTypeWrapper<{}>;
   Notification: ResolverTypeWrapper<Notification>;
   PreferencesInput: PreferencesInput;
@@ -453,6 +460,7 @@ export type ResolversParentTypes = ResolversObject<{
   Dispute: Dispute;
   Float: Scalars['Float']['output'];
   ID: Scalars['ID']['output'];
+  Int: Scalars['Int']['output'];
   Mutation: {};
   Notification: Notification;
   PreferencesInput: PreferencesInput;
@@ -595,6 +603,7 @@ export type QueryResolvers<ContextType = AuthContext, ParentType extends Resolve
   properties?: Resolver<Array<ResolversTypes['Property']>, ParentType, ContextType, Partial<QueryPropertiesArgs>>;
   property?: Resolver<Maybe<ResolversTypes['Property']>, ParentType, ContextType, RequireFields<QueryPropertyArgs, 'id'>>;
   receivedApplications?: Resolver<Array<ResolversTypes['Application']>, ParentType, ContextType>;
+  recommendedProperties?: Resolver<Array<ResolversTypes['Property']>, ParentType, ContextType, Partial<QueryRecommendedPropertiesArgs>>;
   tenancy?: Resolver<Maybe<ResolversTypes['Application']>, ParentType, ContextType, RequireFields<QueryTenancyArgs, 'id'>>;
 }>;
 
