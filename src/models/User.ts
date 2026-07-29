@@ -10,6 +10,7 @@ const preferencesSchema = new Schema(
     maxPrice: { type: Number, default: null },
     bedrooms: { type: [String], default: [] },
     amenities: { type: [String], default: [] },
+    parking: { type: String, default: null },
     onboardingStatus: {
       type: String,
       enum: ['PENDING', 'COMPLETED', 'SKIPPED'],
@@ -40,6 +41,7 @@ const userSchema = new Schema(
         maxPrice: null,
         bedrooms: [],
         amenities: [],
+        parking: null,
         onboardingStatus: 'PENDING',
       }),
     },

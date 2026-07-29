@@ -9,6 +9,7 @@ export function formatPreferences(prefs: any) {
     maxPrice: prefs?.maxPrice ?? null,
     bedrooms: prefs?.bedrooms ?? [],
     amenities: prefs?.amenities ?? [],
+    parking: prefs?.parking ?? null,
     onboardingStatus: prefs?.onboardingStatus ?? 'PENDING',
   };
 }
