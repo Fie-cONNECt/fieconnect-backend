@@ -2,10 +2,7 @@ import mongoose from 'mongoose';
 import { User } from '../models/User';
 import { Property } from '../models/Property';
 import { Application } from '../models/Application';
-import {
-  PropertyInteraction,
-  INTERACTION_WEIGHTS,
-} from '../models/PropertyInteraction';
+import { PropertyInteraction, INTERACTION_WEIGHTS } from '../models/PropertyInteraction';
 import { formatProperty } from '../graphql/formatters';
 
 type Prefs = {
@@ -280,10 +277,7 @@ function itemSimilarity(a: any, b: any): number {
   return parts === 0 ? 0 : sum / parts;
 }
 
-function diversityPenalty(
-  candidate: any,
-  selected: any[],
-): number {
+function diversityPenalty(candidate: any, selected: any[]): number {
   if (selected.length === 0) return 0;
   let maxSim = 0;
   for (const s of selected) {
@@ -304,7 +298,12 @@ function diversify(scored: { prop: any; score: number; reasons: string[] }[], li
     let bestIdx = 0;
     let bestAdj = -Infinity;
     for (let i = 0; i < remaining.length; i++) {
-      const adj = remaining[i].score - diversityPenalty(remaining[i].prop, picked.map((p) => p.prop));
+      const adj =
+        remaining[i].score -
+        diversityPenalty(
+          remaining[i].prop,
+          picked.map((p) => p.prop),
+        );
       if (adj > bestAdj) {
         bestAdj = adj;
         bestIdx = i;
@@ -540,7 +539,8 @@ export async function recommendPropertiesForUser(
     .limit(2000)
     .populate('property', 'landlord');
   for (const app of allAppsSample) {
-    const landlordId = (app.property as any)?.landlord?.toString?.() || (app.property as any)?.landlord;
+    const landlordId =
+      (app.property as any)?.landlord?.toString?.() || (app.property as any)?.landlord;
     if (!landlordId) continue;
     const key = String(landlordId);
     if (!landlordStats.has(key)) landlordStats.set(key, { apps: 0, approved: 0, disputes: 0 });
@@ -703,7 +703,8 @@ export async function recommendPropertiesForUser(
     if (seedProps.length > 0) {
       let best = 0;
       for (const seed of seedProps) {
-        const sim = itemSimilarity(prop, seed) * Math.min(1, weightedPropertyAffinity.get(seed.id) || 0.5);
+        const sim =
+          itemSimilarity(prop, seed) * Math.min(1, weightedPropertyAffinity.get(seed.id) || 0.5);
         best = Math.max(best, sim);
       }
       item = best;
@@ -736,11 +737,7 @@ export async function recommendPropertiesForUser(
       wSession * session.score -
       penalty;
 
-    const reasons = [
-      ...content.reasons,
-      ...location.reasons,
-      ...session.reasons,
-    ];
+    const reasons = [...content.reasons, ...location.reasons, ...session.reasons];
     if (item >= 0.55 && seedProps.length > 0) {
       reasons.push('Similar to a listing you liked');
     }
