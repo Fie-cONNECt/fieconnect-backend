@@ -7,7 +7,8 @@ import jwt from 'jsonwebtoken';
 import { Resolvers } from './__generated__/resolvers-types';
 import mongoose from 'mongoose';
 import { formatUser, formatProperty, formatPreferences } from './formatters';
-import { recommendPropertiesForUser } from '../services/recommendProperties';
+import { recommendPropertiesForUser, trackPropertyView } from '../services/recommendProperties';
+import { PropertyInteraction } from '../models/PropertyInteraction';
 
 const generateToken = (userId: string, email: string) => {
   return jwt.sign({ userId, email }, process.env.JWT_SECRET || 'fallback_secret', {
@@ -25,11 +26,33 @@ export const resolvers: Resolvers = {
       if (!user) return null;
       return formatUser(user);
     },
-    recommendedProperties: async (_: any, { limit }: { limit?: number | null }, context) => {
+    recommendedProperties: async (
+      _: any,
+      {
+        limit,
+        region,
+        type,
+        minPrice,
+        maxPrice,
+      }: {
+        limit?: number | null;
+        region?: string | null;
+        type?: string | null;
+        minPrice?: number | null;
+        maxPrice?: number | null;
+      },
+      context: any,
+    ) => {
       if (!context.userId) {
         throw new Error('Not authenticated');
       }
-      return recommendPropertiesForUser(context.userId, limit ?? 12);
+      return recommendPropertiesForUser(context.userId, {
+        limit: limit ?? 12,
+        region,
+        type,
+        minPrice,
+        maxPrice,
+      });
     },
     myProperties: async (_, __, context) => {
       if (!context.userId) {
@@ -429,6 +452,7 @@ export const resolvers: Resolvers = {
           maxPrice: null,
           bedrooms: [],
           amenities: [],
+          parking: null,
           onboardingStatus: userType === 'LANDLORD' ? 'COMPLETED' : 'PENDING',
         },
       });
@@ -618,8 +642,18 @@ export const resolvers: Resolvers = {
       const index = (user as any).savedProperties.indexOf(propertyId);
       if (index === -1) {
         (user as any).savedProperties.push(propertyId);
+        await PropertyInteraction.create({
+          user: context.userId,
+          property: propertyId,
+          type: 'SAVE',
+        });
       } else {
         (user as any).savedProperties.splice(index, 1);
+        await PropertyInteraction.create({
+          user: context.userId,
+          property: propertyId,
+          type: 'UNSAVE',
+        });
       }
 
       await user.save();
@@ -644,36 +678,52 @@ export const resolvers: Resolvers = {
       if (input.maxPrice !== undefined) prefs.maxPrice = input.maxPrice;
       if (input.bedrooms !== undefined) prefs.bedrooms = input.bedrooms;
       if (input.amenities !== undefined) prefs.amenities = input.amenities;
+      if (input.parking !== undefined) prefs.parking = input.parking;
       prefs.onboardingStatus = 'COMPLETED';
       (user as any).preferences = prefs;
       await user.save();
 
       return formatUser(user);
     },
-    skipPreferences: async (_: any, __: any, context: any) => {
+    skipPreferences: async (_: any, { input }: any, context: any) => {
       if (!context.userId) {
         throw new Error('Not authenticated');
       }
       const user = await User.findById(context.userId);
       if (!user) throw new Error('User not found');
 
-      if (!(user as any).preferences) {
-        (user as any).preferences = {
-          regions: [],
-          districts: [],
-          types: [],
-          minPrice: null,
-          maxPrice: null,
-          bedrooms: [],
-          amenities: [],
-          onboardingStatus: 'SKIPPED',
-        };
-      } else {
-        (user as any).preferences.onboardingStatus = 'SKIPPED';
+      const prefs = (user as any).preferences || {
+        regions: [],
+        districts: [],
+        types: [],
+        minPrice: null,
+        maxPrice: null,
+        bedrooms: [],
+        amenities: [],
+        parking: null,
+        onboardingStatus: 'PENDING',
+      };
+      if (input) {
+        if (input.regions !== undefined) prefs.regions = input.regions;
+        if (input.districts !== undefined) prefs.districts = input.districts;
+        if (input.types !== undefined) prefs.types = input.types;
+        if (input.minPrice !== undefined) prefs.minPrice = input.minPrice;
+        if (input.maxPrice !== undefined) prefs.maxPrice = input.maxPrice;
+        if (input.bedrooms !== undefined) prefs.bedrooms = input.bedrooms;
+        if (input.amenities !== undefined) prefs.amenities = input.amenities;
+        if (input.parking !== undefined) prefs.parking = input.parking;
       }
+      prefs.onboardingStatus = 'SKIPPED';
+      (user as any).preferences = prefs;
       await user.save();
 
       return formatUser(user);
+    },
+    trackPropertyView: async (_: any, { propertyId, durationSec }: any, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      return trackPropertyView(context.userId, propertyId, durationSec);
     },
     createApplication: async (_, { input }, context) => {
       if (!context.userId) {
@@ -699,6 +749,12 @@ export const resolvers: Resolvers = {
       });
 
       await application.save();
+
+      await PropertyInteraction.create({
+        user: context.userId,
+        property: input.propertyId,
+        type: 'APPLY',
+      });
 
       // Create notification for landlord
       const tenantUser = await User.findById(context.userId);
@@ -742,6 +798,14 @@ export const resolvers: Resolvers = {
       }
       app.status = status as any;
       await app.save();
+
+      if (status === 'REJECTED') {
+        await PropertyInteraction.create({
+          user: app.tenant,
+          property: property.id || property._id,
+          type: 'REJECT_OUTCOME',
+        });
+      }
 
       // Create notification for tenant
       const tenantNotification = new Notification({
@@ -1223,6 +1287,7 @@ export const resolvers: Resolvers = {
         maxPrice: (parent as any).preferences?.maxPrice ?? null,
         bedrooms: (parent as any).preferences?.bedrooms ?? [],
         amenities: (parent as any).preferences?.amenities ?? [],
+        parking: (parent as any).preferences?.parking ?? null,
         onboardingStatus: (parent as any).preferences?.onboardingStatus ?? 'PENDING',
       };
     },

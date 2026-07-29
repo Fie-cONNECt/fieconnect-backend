@@ -118,6 +118,7 @@ export type Mutation = {
   submitFurtherDetails: Application;
   submitSignedAgreement: Application;
   toggleSaveProperty: User;
+  trackPropertyView: Scalars['Boolean']['output'];
   updateApplicationStatus: Application;
   updateProfile: User;
 };
@@ -196,6 +197,11 @@ export type MutationSavePreferencesArgs = {
 };
 
 
+export type MutationSkipPreferencesArgs = {
+  input?: InputMaybe<PreferencesInput>;
+};
+
+
 export type MutationSubmitFurtherDetailsArgs = {
   id: Scalars['ID']['input'];
   response: Scalars['String']['input'];
@@ -209,6 +215,12 @@ export type MutationSubmitSignedAgreementArgs = {
 
 
 export type MutationToggleSavePropertyArgs = {
+  propertyId: Scalars['ID']['input'];
+};
+
+
+export type MutationTrackPropertyViewArgs = {
+  durationSec?: InputMaybe<Scalars['Float']['input']>;
   propertyId: Scalars['ID']['input'];
 };
 
@@ -245,6 +257,7 @@ export type PreferencesInput = {
   districts?: InputMaybe<Array<Scalars['String']['input']>>;
   maxPrice?: InputMaybe<Scalars['Float']['input']>;
   minPrice?: InputMaybe<Scalars['Float']['input']>;
+  parking?: InputMaybe<Scalars['String']['input']>;
   regions?: InputMaybe<Array<Scalars['String']['input']>>;
   types?: InputMaybe<Array<Scalars['String']['input']>>;
 };
@@ -296,7 +309,7 @@ export type Query = {
   properties: Array<Property>;
   property?: Maybe<Property>;
   receivedApplications: Array<Application>;
-  recommendedProperties: Array<Property>;
+  recommendedProperties: Array<RecommendedProperty>;
   tenancy?: Maybe<Application>;
 };
 
@@ -321,11 +334,22 @@ export type QueryPropertyArgs = {
 
 export type QueryRecommendedPropertiesArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
+  maxPrice?: InputMaybe<Scalars['Float']['input']>;
+  minPrice?: InputMaybe<Scalars['Float']['input']>;
+  region?: InputMaybe<Scalars['String']['input']>;
+  type?: InputMaybe<Scalars['String']['input']>;
 };
 
 
 export type QueryTenancyArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type RecommendedProperty = {
+  __typename?: 'RecommendedProperty';
+  property: Property;
+  reasons: Array<Scalars['String']['output']>;
+  score: Scalars['Float']['output'];
 };
 
 export type User = {
@@ -352,6 +376,7 @@ export type UserPreferences = {
   maxPrice?: Maybe<Scalars['Float']['output']>;
   minPrice?: Maybe<Scalars['Float']['output']>;
   onboardingStatus: Scalars['String']['output'];
+  parking?: Maybe<Scalars['String']['output']>;
   regions: Array<Scalars['String']['output']>;
   types: Array<Scalars['String']['output']>;
 };
@@ -444,6 +469,7 @@ export type ResolversTypes = ResolversObject<{
   Property: ResolverTypeWrapper<Property>;
   PropertyImages: ResolverTypeWrapper<PropertyImages>;
   Query: ResolverTypeWrapper<{}>;
+  RecommendedProperty: ResolverTypeWrapper<RecommendedProperty>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   User: ResolverTypeWrapper<User>;
   UserPreferences: ResolverTypeWrapper<UserPreferences>;
@@ -467,6 +493,7 @@ export type ResolversParentTypes = ResolversObject<{
   Property: Property;
   PropertyImages: PropertyImages;
   Query: {};
+  RecommendedProperty: RecommendedProperty;
   String: Scalars['String']['output'];
   User: User;
   UserPreferences: UserPreferences;
@@ -537,10 +564,11 @@ export type MutationResolvers<ContextType = AuthContext, ParentType extends Reso
   requestFurtherDetails?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationRequestFurtherDetailsArgs, 'id' | 'message'>>;
   resolveDispute?: Resolver<ResolversTypes['Dispute'], ParentType, ContextType, RequireFields<MutationResolveDisputeArgs, 'id'>>;
   savePreferences?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<MutationSavePreferencesArgs, 'input'>>;
-  skipPreferences?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  skipPreferences?: Resolver<ResolversTypes['User'], ParentType, ContextType, Partial<MutationSkipPreferencesArgs>>;
   submitFurtherDetails?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationSubmitFurtherDetailsArgs, 'id' | 'response'>>;
   submitSignedAgreement?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationSubmitSignedAgreementArgs, 'id' | 'signedAgreementUrl'>>;
   toggleSaveProperty?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<MutationToggleSavePropertyArgs, 'propertyId'>>;
+  trackPropertyView?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType, RequireFields<MutationTrackPropertyViewArgs, 'propertyId'>>;
   updateApplicationStatus?: Resolver<ResolversTypes['Application'], ParentType, ContextType, RequireFields<MutationUpdateApplicationStatusArgs, 'id' | 'status'>>;
   updateProfile?: Resolver<ResolversTypes['User'], ParentType, ContextType, Partial<MutationUpdateProfileArgs>>;
 }>;
@@ -603,8 +631,15 @@ export type QueryResolvers<ContextType = AuthContext, ParentType extends Resolve
   properties?: Resolver<Array<ResolversTypes['Property']>, ParentType, ContextType, Partial<QueryPropertiesArgs>>;
   property?: Resolver<Maybe<ResolversTypes['Property']>, ParentType, ContextType, RequireFields<QueryPropertyArgs, 'id'>>;
   receivedApplications?: Resolver<Array<ResolversTypes['Application']>, ParentType, ContextType>;
-  recommendedProperties?: Resolver<Array<ResolversTypes['Property']>, ParentType, ContextType, Partial<QueryRecommendedPropertiesArgs>>;
+  recommendedProperties?: Resolver<Array<ResolversTypes['RecommendedProperty']>, ParentType, ContextType, Partial<QueryRecommendedPropertiesArgs>>;
   tenancy?: Resolver<Maybe<ResolversTypes['Application']>, ParentType, ContextType, RequireFields<QueryTenancyArgs, 'id'>>;
+}>;
+
+export type RecommendedPropertyResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['RecommendedProperty'] = ResolversParentTypes['RecommendedProperty']> = ResolversObject<{
+  property?: Resolver<ResolversTypes['Property'], ParentType, ContextType>;
+  reasons?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  score?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type UserResolvers<ContextType = AuthContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
@@ -630,6 +665,7 @@ export type UserPreferencesResolvers<ContextType = AuthContext, ParentType exten
   maxPrice?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   minPrice?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   onboardingStatus?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  parking?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   regions?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   types?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -645,6 +681,7 @@ export type Resolvers<ContextType = AuthContext> = ResolversObject<{
   Property?: PropertyResolvers<ContextType>;
   PropertyImages?: PropertyImagesResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  RecommendedProperty?: RecommendedPropertyResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
   UserPreferences?: UserPreferencesResolvers<ContextType>;
 }>;

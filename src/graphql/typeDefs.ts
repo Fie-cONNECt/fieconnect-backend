@@ -7,6 +7,7 @@ export const typeDefs = `#graphql
     maxPrice: Float
     bedrooms: [String!]!
     amenities: [String!]!
+    parking: String
     onboardingStatus: String!
   }
 
@@ -18,6 +19,13 @@ export const typeDefs = `#graphql
     maxPrice: Float
     bedrooms: [String!]
     amenities: [String!]
+    parking: String
+  }
+
+  type RecommendedProperty {
+    property: Property!
+    score: Float!
+    reasons: [String!]!
   }
 
   type User {
@@ -161,7 +169,7 @@ export const typeDefs = `#graphql
     me: User
     myProperties: [Property!]!
     properties(region: String, type: String, minPrice: Float, maxPrice: Float): [Property!]!
-    recommendedProperties(limit: Int): [Property!]!
+    recommendedProperties(limit: Int, region: String, type: String, minPrice: Float, maxPrice: Float): [RecommendedProperty!]!
     property(id: ID!): Property
     myApplications: [Application!]!
     receivedApplications: [Application!]!
@@ -179,7 +187,8 @@ export const typeDefs = `#graphql
     createProperty(input: CreatePropertyInput!): Property!
     toggleSaveProperty(propertyId: ID!): User!
     savePreferences(input: PreferencesInput!): User!
-    skipPreferences: User!
+    skipPreferences(input: PreferencesInput): User!
+    trackPropertyView(propertyId: ID!, durationSec: Float): Boolean!
     createApplication(input: CreateApplicationInput!): Application!
     updateApplicationStatus(id: ID!, status: String!): Application!
     requestFurtherDetails(id: ID!, message: String!): Application!
