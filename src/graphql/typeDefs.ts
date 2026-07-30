@@ -25,6 +25,7 @@ export const typeDefs = `#graphql
   type RecommendedProperty {
     property: Property!
     score: Float!
+    stars: Int!
     reasons: [String!]!
   }
 
@@ -66,6 +67,7 @@ export const typeDefs = `#graphql
     about: String!
     amenities: [String!]!
     mapDescription: String
+    videoUrl: String
     lat: Float
     lng: Float
     image: String!
@@ -99,6 +101,7 @@ export const typeDefs = `#graphql
     bedroomImage: String!
     bathroomImage: String!
     agreementUrl: String
+    videoUrl: String
   }
 
   type Application {

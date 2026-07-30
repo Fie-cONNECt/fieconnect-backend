@@ -152,6 +152,7 @@ export const resolvers: Resolvers = {
         about: prop.about,
         amenities: prop.amenities,
         mapDescription: (prop as any).mapDescription || null,
+        videoUrl: (prop as any).videoUrl || null,
         lat: prop.lat,
         lng: prop.lng,
         image: prop.image,
@@ -553,6 +554,11 @@ export const resolvers: Resolvers = {
         throw new Error('Not authenticated');
       }
 
+      const landlord = await User.findById(context.userId);
+      if (!landlord || landlord.userType !== 'LANDLORD') {
+        throw new Error('Only landlords can list properties');
+      }
+
       let lat = 5.5786;
       let lng = -0.1704;
       if (input.region === 'Ashanti') {
@@ -579,6 +585,7 @@ export const resolvers: Resolvers = {
         parking: input.parking,
         about: input.about,
         amenities: input.amenities,
+        videoUrl: input.videoUrl || null,
         lat,
         lng,
         image: input.image,
@@ -594,35 +601,7 @@ export const resolvers: Resolvers = {
 
       await property.save();
 
-      return {
-        id: property.id,
-        title: property.title,
-        type: property.type,
-        location: property.location,
-        region: property.region,
-        district: property.district,
-        price: property.price,
-        verified: property.verified,
-        bedrooms: property.bedrooms,
-        bathrooms: property.bathrooms,
-        size: property.size,
-        parking: property.parking,
-        about: property.about,
-        amenities: property.amenities,
-        lat: property.lat,
-        lng: property.lng,
-        image: property.image,
-        images: {
-          main: property.images?.main || property.image,
-          kitchen: property.images?.kitchen || '',
-          bedroom: property.images?.bedroom || '',
-          bathroom: property.images?.bathroom || '',
-        },
-        agreementUrl: property.agreementUrl || null,
-        landlord: property.landlord as any,
-        createdAt: (property as any).createdAt.toISOString(),
-        updatedAt: (property as any).updatedAt.toISOString(),
-      };
+      return formatProperty(property);
     },
     toggleSaveProperty: async (_, { propertyId }, context) => {
       if (!context.userId) {
