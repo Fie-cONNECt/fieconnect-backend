@@ -84,6 +84,7 @@ export type CreatePropertyInput = {
   size: Scalars['String']['input'];
   title: Scalars['String']['input'];
   type: Scalars['String']['input'];
+  videoUrl?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type Dispute = {
@@ -271,6 +272,7 @@ export type Property = {
   type: Scalars['String']['output'];
   updatedAt: Scalars['String']['output'];
   verified: Scalars['Boolean']['output'];
+  videoUrl?: Maybe<Scalars['String']['output']>;
 };
 
 export type PropertyImages = {
@@ -723,6 +725,7 @@ export type PropertyResolvers<
   type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   verified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  videoUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

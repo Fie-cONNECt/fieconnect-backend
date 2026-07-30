@@ -22,6 +22,7 @@ const propertySchema = new Schema(
     about: { type: String, required: true },
     amenities: { type: [String], default: [] },
     mapDescription: { type: String },
+    videoUrl: { type: String },
     lat: { type: Number },
     lng: { type: Number },
     image: { type: String, required: true },
