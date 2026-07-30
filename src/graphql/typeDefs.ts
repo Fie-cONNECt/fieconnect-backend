@@ -25,6 +25,7 @@ export const typeDefs = `#graphql
   type RecommendedProperty {
     property: Property!
     score: Float!
+    stars: Int!
     reasons: [String!]!
   }
 

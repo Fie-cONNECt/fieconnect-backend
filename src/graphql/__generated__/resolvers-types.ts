@@ -329,6 +329,7 @@ export type RecommendedProperty = {
   property: Property;
   reasons: Array<Scalars['String']['output']>;
   score: Scalars['Float']['output'];
+  stars: Scalars['Int']['output'];
 };
 
 export type User = {
@@ -788,6 +789,7 @@ export type RecommendedPropertyResolvers<
   property?: Resolver<ResolversTypes['Property'], ParentType, ContextType>;
   reasons?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   score?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  stars?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
