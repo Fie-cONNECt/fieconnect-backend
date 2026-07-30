@@ -553,6 +553,11 @@ export const resolvers: Resolvers = {
         throw new Error('Not authenticated');
       }
 
+      const landlord = await User.findById(context.userId);
+      if (!landlord || landlord.userType !== 'LANDLORD') {
+        throw new Error('Only landlords can list properties');
+      }
+
       let lat = 5.5786;
       let lng = -0.1704;
       if (input.region === 'Ashanti') {
