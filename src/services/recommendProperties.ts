@@ -28,6 +28,7 @@ export type RecommendOptions = {
 export type ScoredRecommendation = {
   property: ReturnType<typeof formatProperty>;
   score: number;
+  stars: number;
   reasons: string[];
 };
 
@@ -68,14 +69,40 @@ const STOP_WORDS = new Set([
   'at',
 ]);
 
-function jaccard(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 && b.size === 0) return 0;
+/** Cosine similarity for sparse feature maps (preference / item vectors). */
+function cosineSimilarity(a: Map<string, number>, b: Map<string, number>): number {
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (const [key, va] of a) {
+    normA += va * va;
+    const vb = b.get(key);
+    if (vb != null) dot += va * vb;
+  }
+  for (const vb of b.values()) {
+    normB += vb * vb;
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+/** Cosine on binary multi-hot sets — |A∩B| / (√|A| √|B|). */
+function setCosine(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0;
   let intersection = 0;
   for (const x of a) {
     if (b.has(x)) intersection += 1;
   }
-  const union = a.size + b.size - intersection;
-  return union === 0 ? 0 : intersection / union;
+  return intersection / (Math.sqrt(a.size) * Math.sqrt(b.size));
+}
+
+/**
+ * Translate a 0–1 preference match score into 1–5 stars.
+ * Examples: ~7/8 prefs → 5★, ~4/8 prefs → 3★.
+ */
+function scoreToStars(score: number): number {
+  if (score <= 0) return 0;
+  return Math.min(5, Math.max(1, Math.ceil(score * 5 - 1e-9)));
 }
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -105,7 +132,7 @@ function tokenize(text: string): Set<string> {
 }
 
 function textSimilarity(a: string, b: string): number {
-  return jaccard(tokenize(a), tokenize(b));
+  return setCosine(tokenize(a), tokenize(b));
 }
 
 function hasContentPrefs(prefs: Prefs): boolean {
@@ -121,62 +148,111 @@ function hasContentPrefs(prefs: Prefs): boolean {
   );
 }
 
-function contentScore(prop: any, prefs: Prefs): { score: number; reasons: string[] } {
-  if (!hasContentPrefs(prefs)) return { score: 0, reasons: [] };
+function contentScore(
+  prop: any,
+  prefs: Prefs,
+): { score: number; stars: number; reasons: string[] } {
+  if (!hasContentPrefs(prefs)) return { score: 0, stars: 0, reasons: [] };
 
-  const parts: number[] = [];
+  const tenant = new Map<string, number>();
+  const listing = new Map<string, number>();
   const reasons: string[] = [];
+  let matchedDims = 0;
+  let totalDims = 0;
+
+  const bumpMatch = (ok: boolean, soft = 0) => {
+    totalDims += 1;
+    if (ok) matchedDims += 1;
+    else if (soft > 0) matchedDims += soft;
+  };
 
   if (prefs.regions.length > 0) {
-    const hit = prefs.regions.some((r) => r.toLowerCase() === prop.region?.toLowerCase());
-    parts.push(hit ? 1 : 0);
+    for (const r of prefs.regions) tenant.set(`region:${r.toLowerCase()}`, 1);
+    const regionKey = prop.region ? `region:${String(prop.region).toLowerCase()}` : '';
+    const hit = regionKey !== '' && tenant.has(regionKey);
+    if (hit) listing.set(regionKey, 1);
+    bumpMatch(hit);
     if (hit) reasons.push(`Matches your region (${prop.region})`);
   }
+
   if (prefs.districts.length > 0) {
-    const hit = prefs.districts.some((d) => d.toLowerCase() === prop.district?.toLowerCase());
-    parts.push(hit ? 1 : 0.15);
+    for (const d of prefs.districts) tenant.set(`district:${d.toLowerCase()}`, 1);
+    const districtKey = prop.district ? `district:${String(prop.district).toLowerCase()}` : '';
+    const hit = districtKey !== '' && tenant.has(districtKey);
+    if (hit) listing.set(districtKey, 1);
+    bumpMatch(hit);
     if (hit) reasons.push(`In ${prop.district}`);
   }
+
   if (prefs.types.length > 0) {
-    const hit = prefs.types.some((t) => t.toLowerCase() === prop.type?.toLowerCase());
-    parts.push(hit ? 1 : 0);
+    for (const t of prefs.types) tenant.set(`type:${t.toLowerCase()}`, 1);
+    const typeKey = prop.type ? `type:${String(prop.type).toLowerCase()}` : '';
+    const hit = typeKey !== '' && tenant.has(typeKey);
+    if (hit) listing.set(typeKey, 1);
+    bumpMatch(hit);
     if (hit) reasons.push(`Matches ${prop.type}`);
   }
+
   if (prefs.bedrooms.length > 0) {
-    const hit = prefs.bedrooms.includes(String(prop.bedrooms));
-    parts.push(hit ? 1 : 0.2);
+    for (const b of prefs.bedrooms) tenant.set(`bedrooms:${b}`, 1);
+    const bedKey = `bedrooms:${String(prop.bedrooms)}`;
+    const hit = tenant.has(bedKey);
+    if (hit) listing.set(bedKey, 1);
+    bumpMatch(hit);
     if (hit) reasons.push(`${prop.bedrooms} bedroom${prop.bedrooms === '1' ? '' : 's'}`);
   }
+
   if (prefs.minPrice != null || prefs.maxPrice != null) {
+    tenant.set('budget', 1);
     const price = Number(prop.price) || 0;
     const min = prefs.minPrice ?? 0;
     const max = prefs.maxPrice ?? Number.POSITIVE_INFINITY;
+    let fit = 0;
     if (price >= min && price <= max) {
-      parts.push(1);
+      fit = 1;
       reasons.push('Matches your budget');
     } else if (price < min) {
-      parts.push(Math.max(0, 1 - (min - price) / Math.max(min, 1)));
+      fit = Math.max(0, 1 - (min - price) / Math.max(min, 1));
     } else {
-      parts.push(Math.max(0, 1 - (price - max) / Math.max(max, 1)));
+      fit = Math.max(0, 1 - (price - max) / Math.max(max, 1));
     }
+    if (fit > 0) listing.set('budget', fit);
+    bumpMatch(fit >= 0.85, fit);
   }
+
   if (prefs.amenities.length > 0) {
     const propAmenities = new Set<string>(
       (prop.amenities || []).map((a: string) => a.toLowerCase()),
     );
-    const prefAmenities = new Set(prefs.amenities.map((a) => a.toLowerCase()));
-    const overlap = jaccard(prefAmenities, propAmenities);
-    parts.push(overlap);
-    if (overlap >= 0.3) reasons.push('Has amenities you like');
+    let amenityHits = 0;
+    for (const a of prefs.amenities) {
+      const key = `amenity:${a.toLowerCase()}`;
+      tenant.set(key, 1);
+      if (propAmenities.has(a.toLowerCase())) {
+        listing.set(key, 1);
+        amenityHits += 1;
+      }
+    }
+    const amenityRatio = amenityHits / prefs.amenities.length;
+    bumpMatch(amenityRatio >= 0.99, amenityRatio);
+    if (amenityRatio >= 0.3) reasons.push('Has amenities you like');
   }
+
   if (prefs.parking) {
+    tenant.set('parking', 1);
     const hit = String(prop.parking).toLowerCase() === prefs.parking.toLowerCase();
-    parts.push(hit ? 1 : 0.2);
+    if (hit) listing.set('parking', 1);
+    bumpMatch(hit);
     if (hit && prefs.parking === 'Yes') reasons.push('Has parking');
   }
 
-  if (parts.length === 0) return { score: 0, reasons: [] };
-  return { score: parts.reduce((s, x) => s + x, 0) / parts.length, reasons };
+  if (tenant.size === 0) return { score: 0, stars: 0, reasons: [] };
+
+  const score = cosineSimilarity(tenant, listing);
+  // Stars follow preference hit ratio (7/8 → 5★, 4/8 → 3★); cosine drives ranking.
+  const matchRatio = totalDims === 0 ? 0 : matchedDims / totalDims;
+  const stars = scoreToStars(matchRatio > 0 ? matchRatio : score);
+  return { score, stars, reasons };
 }
 
 function locationScore(
@@ -262,7 +338,7 @@ function itemSimilarity(a: any, b: any): number {
     sum += ratio;
     parts += 1;
   }
-  const amenitySim = jaccard(
+  const amenitySim = setCosine(
     new Set((a.amenities || []).map((x: string) => x.toLowerCase())),
     new Set((b.amenities || []).map((x: string) => x.toLowerCase())),
   );
@@ -291,7 +367,10 @@ function diversityPenalty(candidate: any, selected: any[]): number {
   return maxSim * 0.35;
 }
 
-function diversify(scored: { prop: any; score: number; reasons: string[] }[], limit: number) {
+function diversify(
+  scored: { prop: any; score: number; stars: number; reasons: string[] }[],
+  limit: number,
+) {
   const remaining = [...scored];
   const picked: typeof scored = [];
   while (picked.length < limit && remaining.length > 0) {
@@ -375,6 +454,7 @@ export async function recommendPropertiesForUser(
     return props.map((prop) => ({
       property: formatProperty(prop),
       score: 0.5,
+      stars: 3,
       reasons: ['Recently listed'],
     }));
   }
@@ -601,11 +681,11 @@ export async function recommendPropertiesForUser(
       affinity.set(pid, Math.max(affinity.get(pid) || 0, 1.0));
     }
     const otherPos = new Set([...affinity.entries()].filter(([, w]) => w > 0.2).map(([id]) => id));
-    let sim = jaccard(ownSet, otherPos);
+    let sim = setCosine(ownSet, otherPos);
 
     const otherRegions: string[] = (other as any).preferences?.regions ?? [];
     if (prefs.regions.length > 0 && otherRegions.length > 0) {
-      const regionOverlap = jaccard(
+      const regionOverlap = setCosine(
         new Set(prefs.regions.map((r) => r.toLowerCase())),
         new Set(otherRegions.map((r) => r.toLowerCase())),
       );
@@ -754,15 +834,19 @@ export async function recommendPropertiesForUser(
     const uniqueReasons = [...new Set(reasons)].slice(0, 3);
     if (uniqueReasons.length === 0) uniqueReasons.push('Recommended for you');
 
-    return { prop, score, reasons: uniqueReasons };
+    // Prefer preference-match stars; fall back to overall ranking score when prefs are empty.
+    const stars = content.stars > 0 ? content.stars : scoreToStars(Math.max(0, Math.min(1, score)));
+
+    return { prop, score, stars, reasons: uniqueReasons };
   });
 
   scored.sort((a, b) => b.score - a.score);
   const diversified = diversify(scored, limit);
 
-  return diversified.map(({ prop, score, reasons }) => ({
+  return diversified.map(({ prop, score, stars, reasons }) => ({
     property: formatProperty(prop),
     score: Math.round(score * 1000) / 1000,
+    stars,
     reasons,
   }));
 }

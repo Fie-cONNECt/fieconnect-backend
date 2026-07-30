@@ -48,6 +48,7 @@ export function formatProperty(prop: any) {
     about: prop.about,
     amenities: prop.amenities || [],
     mapDescription: prop.mapDescription || null,
+    videoUrl: prop.videoUrl || null,
     lat: prop.lat ?? null,
     lng: prop.lng ?? null,
     image: prop.image,
