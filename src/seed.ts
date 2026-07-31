@@ -41,11 +41,21 @@ const PARKING_OPTIONS = ['Yes', 'No'] as const;
 
 /** Representative prices across every rent-range bucket used in the UI */
 const PRICE_SAMPLES = [
-  1200, 1800, 2500, // 1k–3k
-  3200, 4000, 4800, // 3k–5k
-  5500, 7200, 9500, // 5k–10k
-  11000, 15000, 18500, // 10k–20k
-  22000, 28000, 35000, // 20k+
+  1200,
+  1800,
+  2500, // 1k–3k
+  3200,
+  4000,
+  4800, // 3k–5k
+  5500,
+  7200,
+  9500, // 5k–10k
+  11000,
+  15000,
+  18500, // 10k–20k
+  22000,
+  28000,
+  35000, // 20k+
 ];
 
 const MAIN_IMAGES = [
@@ -260,7 +270,7 @@ async function seed() {
     // Keep landlord prefs consistent with current schema
     if (!(landlord as any).preferences?.onboardingStatus) {
       (landlord as any).preferences = {
-        ...(landlord as any).preferences?.toObject?.() ?? (landlord as any).preferences,
+        ...((landlord as any).preferences?.toObject?.() ?? (landlord as any).preferences),
         onboardingStatus: 'COMPLETED',
       };
       await landlord.save();
