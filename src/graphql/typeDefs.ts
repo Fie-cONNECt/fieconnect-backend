@@ -168,11 +168,40 @@ export const typeDefs = `#graphql
     personalStatement: String!
   }
 
+  enum ActivityType {
+    VIEWED_PROPERTY
+    SAVED_PROPERTY
+    APPLIED
+    APPLICATION_UPDATED
+    DISPUTE_OPENED
+    DISPUTE_UPDATED
+  }
+
+  type ActivityProperty {
+    id: ID!
+    title: String!
+    location: String!
+    image: String!
+    price: Float!
+  }
+
+  type ActivityItem {
+    id: ID!
+    type: ActivityType!
+    title: String!
+    subtitle: String
+    status: String
+    link: String!
+    createdAt: String!
+    property: ActivityProperty
+  }
+
   type Query {
     me: User
     myProperties: [Property!]!
     properties(region: String, type: String, minPrice: Float, maxPrice: Float): [Property!]!
     recommendedProperties(limit: Int, region: String, type: String, minPrice: Float, maxPrice: Float): [RecommendedProperty!]!
+    myRecentActivity(limit: Int): [ActivityItem!]!
     property(id: ID!): Property
     myApplications: [Application!]!
     receivedApplications: [Application!]!
@@ -194,6 +223,7 @@ export const typeDefs = `#graphql
     trackPropertyView(propertyId: ID!, durationSec: Float): Boolean!
     createApplication(input: CreateApplicationInput!): Application!
     updateApplicationStatus(id: ID!, status: String!): Application!
+    cancelApplication(id: ID!): Application!
     requestFurtherDetails(id: ID!, message: String!): Application!
     submitFurtherDetails(id: ID!, response: String!): Application!
     markNotificationAsRead(id: ID!): Notification!

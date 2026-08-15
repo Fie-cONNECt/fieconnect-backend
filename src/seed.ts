@@ -4,6 +4,9 @@ import mongoose from 'mongoose';
 import { connectDB } from './config/db';
 import { Property } from './models/Property';
 import { User } from './models/User';
+import { Application } from './models/Application';
+import { PropertyInteraction } from './models/PropertyInteraction';
+import { Dispute } from './models/Dispute';
 
 const REGIONS = [
   'Ahafo',
@@ -277,8 +280,19 @@ async function seed() {
     }
   }
 
+  // Clear listings and dependent records so apps/interactions don't point at deleted IDs.
+  const oldPropertyIds = (await Property.find({}).select('_id').lean()).map((p) => p._id);
+  const orphanApps = await Application.find({ property: { $in: oldPropertyIds } }).select('_id');
+  const orphanAppIds = orphanApps.map((a) => a._id);
+  if (orphanAppIds.length > 0) {
+    await Dispute.deleteMany({ tenancy: { $in: orphanAppIds } });
+  }
+  await Application.deleteMany({ property: { $in: oldPropertyIds } });
+  await PropertyInteraction.deleteMany({ property: { $in: oldPropertyIds } });
   await Property.deleteMany({});
-  console.log('Deleted existing properties.');
+  console.log(
+    `Deleted existing properties and related applications/interactions/disputes (${oldPropertyIds.length} listings).`,
+  );
 
   const propertiesToInsert: Record<string, unknown>[] = [];
   let index = 0;

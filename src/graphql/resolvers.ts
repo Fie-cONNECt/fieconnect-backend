@@ -6,8 +6,16 @@ import { Dispute } from '../models/Dispute';
 import jwt from 'jsonwebtoken';
 import { Resolvers } from './__generated__/resolvers-types';
 import mongoose from 'mongoose';
-import { formatUser, formatProperty, formatPreferences } from './formatters';
+import {
+  formatUser,
+  formatProperty,
+  formatPreferences,
+  unavailableProperty,
+  unavailableUser,
+  toIdString,
+} from './formatters';
 import { recommendPropertiesForUser, trackPropertyView } from '../services/recommendProperties';
+import { getRecentActivityForUser } from '../services/recentActivity';
 import { PropertyInteraction } from '../models/PropertyInteraction';
 
 const generateToken = (userId: string, email: string) => {
@@ -53,6 +61,12 @@ export const resolvers: Resolvers = {
         minPrice,
         maxPrice,
       });
+    },
+    myRecentActivity: async (_: any, { limit }: { limit?: number | null }, context: any) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      return getRecentActivityForUser(context.userId, limit ?? 12) as any;
     },
     myProperties: async (_, __, context) => {
       if (!context.userId) {
@@ -196,7 +210,10 @@ export const resolvers: Resolvers = {
       if (!context.userId) {
         throw new Error('Not authenticated');
       }
-      const apps = await Application.find({ tenant: context.userId }).sort({ createdAt: -1 });
+      const apps = await Application.find({
+        tenant: context.userId,
+        status: { $ne: 'CANCELLED' },
+      }).sort({ createdAt: -1 });
       return apps.map((app) => ({
         id: app.id,
         property: app.property as any,
@@ -224,7 +241,10 @@ export const resolvers: Resolvers = {
       const properties = await Property.find({ landlord: context.userId });
       const propertyIds = properties.map((p) => p._id);
 
-      const apps = await Application.find({ property: { $in: propertyIds } }).sort({
+      const apps = await Application.find({
+        property: { $in: propertyIds },
+        status: { $ne: 'CANCELLED' },
+      }).sort({
         createdAt: -1,
       });
       return apps.map((app) => ({
@@ -813,6 +833,69 @@ export const resolvers: Resolvers = {
         updatedAt: (app as any).updatedAt.toISOString(),
       };
     },
+    cancelApplication: async (_, { id }, context) => {
+      if (!context.userId) {
+        throw new Error('Not authenticated');
+      }
+      const app = await Application.findById(id).populate('property');
+      if (!app) {
+        throw new Error('Application not found');
+      }
+      if (app.tenant.toString() !== context.userId) {
+        throw new Error('Only the applicant can cancel this application');
+      }
+
+      const cancellable = [
+        'PENDING',
+        'INFORMATION_REQUESTED',
+        'APPROVED_PENDING_SIGNATURE',
+        'APPROVED',
+      ];
+      if (!cancellable.includes(app.status)) {
+        throw new Error('This application can no longer be cancelled');
+      }
+
+      const previousStatus = app.status;
+      app.status = 'CANCELLED';
+      await app.save();
+
+      const property = app.property as any;
+      const tenantUser = await User.findById(context.userId);
+      const landlordId = toIdString(property?.landlord) || property?.landlord?.toString?.();
+
+      if (landlordId) {
+        const wasApproved =
+          previousStatus === 'APPROVED' || previousStatus === 'APPROVED_PENDING_SIGNATURE';
+        await new Notification({
+          recipient: landlordId,
+          title: wasApproved ? 'Tenant cancelled approved application' : 'Application withdrawn',
+          message: wasApproved
+            ? `${tenantUser?.firstName || 'A tenant'} cancelled their approved application for ${property.title}.`
+            : `${tenantUser?.firstName || 'A tenant'} withdrew their application for ${property.title}.`,
+          link: '/app/applications',
+        }).save();
+      }
+
+      return {
+        id: app.id,
+        property: app.property as any,
+        tenant: app.tenant as any,
+        nationalIdUrl: app.nationalIdUrl,
+        supportingDocsUrl: app.supportingDocsUrl || null,
+        employerName: app.employerName,
+        jobTitle: app.jobTitle,
+        monthlyIncome: app.monthlyIncome,
+        lengthOfEmployment: app.lengthOfEmployment,
+        personalStatement: app.personalStatement,
+        status: app.status,
+        furtherDetailsRequest: app.furtherDetailsRequest || null,
+        furtherDetailsResponse: app.furtherDetailsResponse || null,
+        agreementUrl: app.agreementUrl || null,
+        signedAgreementUrl: app.signedAgreementUrl || null,
+        createdAt: (app as any).createdAt.toISOString(),
+        updatedAt: (app as any).updatedAt.toISOString(),
+      };
+    },
     requestFurtherDetails: async (_, { id, message }, context) => {
       if (!context.userId) {
         throw new Error('Not authenticated');
@@ -1214,33 +1297,39 @@ export const resolvers: Resolvers = {
   Property: {
     landlord: async (parent) => {
       const landlordVal = (parent as any).landlord;
-      if (landlordVal && typeof landlordVal === 'object') {
-        const id = landlordVal.id || landlordVal._id?.toString();
-        if (id && landlordVal.firstName) {
-          return {
-            id,
-            firstName: landlordVal.firstName,
-            lastName: landlordVal.lastName,
-            email: landlordVal.email,
-            userType: landlordVal.userType,
-            phone: landlordVal.phone,
-            savedProperties: [],
-            preferences: formatPreferences(null),
-            createdAt:
-              typeof landlordVal.createdAt === 'string'
-                ? landlordVal.createdAt
-                : landlordVal.createdAt?.toISOString() || new Date().toISOString(),
-            updatedAt:
-              typeof landlordVal.updatedAt === 'string'
-                ? landlordVal.updatedAt
-                : landlordVal.updatedAt?.toISOString() || new Date().toISOString(),
-          };
-        }
+      const populatedId = toIdString(landlordVal);
+      if (landlordVal && typeof landlordVal === 'object' && landlordVal.firstName && populatedId) {
+        return {
+          id: populatedId,
+          firstName: landlordVal.firstName,
+          lastName: landlordVal.lastName,
+          email: landlordVal.email,
+          userType: landlordVal.userType,
+          phone: landlordVal.phone,
+          savedProperties: [],
+          preferences: formatPreferences(null),
+          createdAt:
+            typeof landlordVal.createdAt === 'string'
+              ? landlordVal.createdAt
+              : landlordVal.createdAt?.toISOString() || new Date().toISOString(),
+          updatedAt:
+            typeof landlordVal.updatedAt === 'string'
+              ? landlordVal.updatedAt
+              : landlordVal.updatedAt?.toISOString() || new Date().toISOString(),
+        };
       }
 
-      const user = await User.findById(landlordVal);
+      const id = toIdString(landlordVal);
+      let user = null;
+      if (id) {
+        try {
+          user = await User.findById(id);
+        } catch {
+          user = null;
+        }
+      }
       if (!user) {
-        throw new Error('Landlord user not found');
+        return unavailableUser(id);
       }
       return {
         id: user.id,
@@ -1271,7 +1360,8 @@ export const resolvers: Resolvers = {
       };
     },
     savedProperties: async (parent) => {
-      const userId = parent.id || (parent as any)._id;
+      const userId = toIdString(parent.id || (parent as any)._id);
+      if (!userId) return [];
       const user = await User.findById(userId);
       if (!user || !user.savedProperties) return [];
       const properties = await Property.find({ _id: { $in: user.savedProperties } });
@@ -1284,69 +1374,56 @@ export const resolvers: Resolvers = {
       if (propId && typeof propId === 'object' && 'title' in propId) {
         return propId;
       }
-      const prop = await Property.findById(propId).populate('landlord');
-      if (!prop) {
-        throw new Error('Property not found');
+      const id = toIdString(propId);
+      let prop = null;
+      if (id) {
+        try {
+          prop = await Property.findById(id).populate('landlord');
+        } catch {
+          prop = null;
+        }
       }
-      return {
-        id: prop.id,
-        title: prop.title,
-        type: prop.type,
-        location: prop.location,
-        region: prop.region,
-        district: prop.district,
-        price: prop.price,
-        verified: prop.verified,
-        bedrooms: prop.bedrooms,
-        bathrooms: prop.bathrooms,
-        size: prop.size,
-        parking: prop.parking,
-        about: prop.about,
-        amenities: prop.amenities,
-        lat: prop.lat,
-        lng: prop.lng,
-        image: prop.image,
-        images: {
-          main: prop.images?.main || prop.image,
-          kitchen: prop.images?.kitchen || '',
-          bedroom: prop.images?.bedroom || '',
-          bathroom: prop.images?.bathroom || '',
-        },
-        agreementUrl: prop.agreementUrl || null,
-        landlord: prop.landlord as any,
-        createdAt: (prop as any).createdAt.toISOString(),
-        updatedAt: (prop as any).updatedAt.toISOString(),
-      };
+      if (!prop) {
+        // Keep myApplications / tenancies queryable after listings are reseeded/deleted.
+        return unavailableProperty(id);
+      }
+      return formatProperty(prop);
     },
     tenant: async (parent) => {
       const tenantVal = (parent as any).tenant;
-      if (tenantVal && typeof tenantVal === 'object') {
-        const id = tenantVal.id || tenantVal._id?.toString();
-        if (id && tenantVal.firstName) {
-          return {
-            id,
-            firstName: tenantVal.firstName,
-            lastName: tenantVal.lastName,
-            email: tenantVal.email,
-            userType: tenantVal.userType,
-            phone: tenantVal.phone,
-            savedProperties: [],
-            preferences: formatPreferences(null),
-            createdAt:
-              typeof tenantVal.createdAt === 'string'
-                ? tenantVal.createdAt
-                : tenantVal.createdAt?.toISOString() || new Date().toISOString(),
-            updatedAt:
-              typeof tenantVal.updatedAt === 'string'
-                ? tenantVal.updatedAt
-                : tenantVal.updatedAt?.toISOString() || new Date().toISOString(),
-          };
-        }
+      const populatedId = toIdString(tenantVal);
+      if (tenantVal && typeof tenantVal === 'object' && tenantVal.firstName && populatedId) {
+        return {
+          id: populatedId,
+          firstName: tenantVal.firstName,
+          lastName: tenantVal.lastName,
+          email: tenantVal.email,
+          userType: tenantVal.userType,
+          phone: tenantVal.phone,
+          savedProperties: [],
+          preferences: formatPreferences(null),
+          createdAt:
+            typeof tenantVal.createdAt === 'string'
+              ? tenantVal.createdAt
+              : tenantVal.createdAt?.toISOString() || new Date().toISOString(),
+          updatedAt:
+            typeof tenantVal.updatedAt === 'string'
+              ? tenantVal.updatedAt
+              : tenantVal.updatedAt?.toISOString() || new Date().toISOString(),
+        };
       }
 
-      const user = await User.findById(tenantVal);
+      const id = toIdString(tenantVal);
+      let user = null;
+      if (id) {
+        try {
+          user = await User.findById(id);
+        } catch {
+          user = null;
+        }
+      }
       if (!user) {
-        throw new Error('Tenant user not found');
+        return unavailableUser(id);
       }
       return {
         id: user.id,
@@ -1365,33 +1442,44 @@ export const resolvers: Resolvers = {
   Notification: {
     recipient: async (parent) => {
       const recipientVal = (parent as any).recipient;
-      if (recipientVal && typeof recipientVal === 'object') {
-        const id = recipientVal.id || recipientVal._id?.toString();
-        if (id && recipientVal.firstName) {
-          return {
-            id,
-            firstName: recipientVal.firstName,
-            lastName: recipientVal.lastName,
-            email: recipientVal.email,
-            userType: recipientVal.userType,
-            phone: recipientVal.phone,
-            savedProperties: [],
-            preferences: formatPreferences(null),
-            createdAt:
-              typeof recipientVal.createdAt === 'string'
-                ? recipientVal.createdAt
-                : recipientVal.createdAt?.toISOString() || new Date().toISOString(),
-            updatedAt:
-              typeof recipientVal.updatedAt === 'string'
-                ? recipientVal.updatedAt
-                : recipientVal.updatedAt?.toISOString() || new Date().toISOString(),
-          };
-        }
+      const populatedId = toIdString(recipientVal);
+      if (
+        recipientVal &&
+        typeof recipientVal === 'object' &&
+        recipientVal.firstName &&
+        populatedId
+      ) {
+        return {
+          id: populatedId,
+          firstName: recipientVal.firstName,
+          lastName: recipientVal.lastName,
+          email: recipientVal.email,
+          userType: recipientVal.userType,
+          phone: recipientVal.phone,
+          savedProperties: [],
+          preferences: formatPreferences(null),
+          createdAt:
+            typeof recipientVal.createdAt === 'string'
+              ? recipientVal.createdAt
+              : recipientVal.createdAt?.toISOString() || new Date().toISOString(),
+          updatedAt:
+            typeof recipientVal.updatedAt === 'string'
+              ? recipientVal.updatedAt
+              : recipientVal.updatedAt?.toISOString() || new Date().toISOString(),
+        };
       }
 
-      const user = await User.findById(recipientVal);
+      const id = toIdString(recipientVal);
+      let user = null;
+      if (id) {
+        try {
+          user = await User.findById(id);
+        } catch {
+          user = null;
+        }
+      }
       if (!user) {
-        throw new Error('Notification recipient user not found');
+        return unavailableUser(id);
       }
       return {
         id: user.id,

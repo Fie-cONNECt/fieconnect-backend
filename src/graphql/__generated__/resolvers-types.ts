@@ -20,6 +20,36 @@ export type Scalars = {
   Float: { input: number; output: number };
 };
 
+export type ActivityItem = {
+  __typename?: 'ActivityItem';
+  createdAt: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  link: Scalars['String']['output'];
+  property?: Maybe<ActivityProperty>;
+  status?: Maybe<Scalars['String']['output']>;
+  subtitle?: Maybe<Scalars['String']['output']>;
+  title: Scalars['String']['output'];
+  type: ActivityType;
+};
+
+export type ActivityProperty = {
+  __typename?: 'ActivityProperty';
+  id: Scalars['ID']['output'];
+  image: Scalars['String']['output'];
+  location: Scalars['String']['output'];
+  price: Scalars['Float']['output'];
+  title: Scalars['String']['output'];
+};
+
+export enum ActivityType {
+  ApplicationUpdated = 'APPLICATION_UPDATED',
+  Applied = 'APPLIED',
+  DisputeOpened = 'DISPUTE_OPENED',
+  DisputeUpdated = 'DISPUTE_UPDATED',
+  SavedProperty = 'SAVED_PROPERTY',
+  ViewedProperty = 'VIEWED_PROPERTY',
+}
+
 export type Application = {
   __typename?: 'Application';
   agreementUrl?: Maybe<Scalars['String']['output']>;
@@ -107,6 +137,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   addDisputeComment: Dispute;
   approveApplicationWithAgreement: Application;
+  cancelApplication: Application;
   changePassword: Scalars['Boolean']['output'];
   createApplication: Application;
   createDispute: Dispute;
@@ -134,6 +165,10 @@ export type MutationAddDisputeCommentArgs = {
 
 export type MutationApproveApplicationWithAgreementArgs = {
   agreementUrl: Scalars['String']['input'];
+  id: Scalars['ID']['input'];
+};
+
+export type MutationCancelApplicationArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -291,6 +326,7 @@ export type Query = {
   myDisputes: Array<Dispute>;
   myNotifications: Array<Notification>;
   myProperties: Array<Property>;
+  myRecentActivity: Array<ActivityItem>;
   myTenancies: Array<Application>;
   properties: Array<Property>;
   property?: Maybe<Property>;
@@ -301,6 +337,10 @@ export type Query = {
 
 export type QueryDisputeArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type QueryMyRecentActivityArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type QueryPropertiesArgs = {
@@ -450,6 +490,9 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
+  ActivityItem: ResolverTypeWrapper<ActivityItem>;
+  ActivityProperty: ResolverTypeWrapper<ActivityProperty>;
+  ActivityType: ActivityType;
   Application: ResolverTypeWrapper<Application>;
   AuthPayload: ResolverTypeWrapper<AuthPayload>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
@@ -474,6 +517,8 @@ export type ResolversTypes = ResolversObject<{
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
+  ActivityItem: ActivityItem;
+  ActivityProperty: ActivityProperty;
   Application: Application;
   AuthPayload: AuthPayload;
   Boolean: Scalars['Boolean']['output'];
@@ -494,6 +539,34 @@ export type ResolversParentTypes = ResolversObject<{
   String: Scalars['String']['output'];
   User: User;
   UserPreferences: UserPreferences;
+}>;
+
+export type ActivityItemResolvers<
+  ContextType = AuthContext,
+  ParentType extends ResolversParentTypes['ActivityItem'] = ResolversParentTypes['ActivityItem'],
+> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  link?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  property?: Resolver<Maybe<ResolversTypes['ActivityProperty']>, ParentType, ContextType>;
+  status?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  subtitle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['ActivityType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ActivityPropertyResolvers<
+  ContextType = AuthContext,
+  ParentType extends ResolversParentTypes['ActivityProperty'] =
+    ResolversParentTypes['ActivityProperty'],
+> = ResolversObject<{
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  image?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  location?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  price?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ApplicationResolvers<
@@ -574,6 +647,12 @@ export type MutationResolvers<
     ParentType,
     ContextType,
     RequireFields<MutationApproveApplicationWithAgreementArgs, 'agreementUrl' | 'id'>
+  >;
+  cancelApplication?: Resolver<
+    ResolversTypes['Application'],
+    ParentType,
+    ContextType,
+    RequireFields<MutationCancelApplicationArgs, 'id'>
   >;
   changePassword?: Resolver<
     ResolversTypes['Boolean'],
@@ -756,6 +835,12 @@ export type QueryResolvers<
   myDisputes?: Resolver<Array<ResolversTypes['Dispute']>, ParentType, ContextType>;
   myNotifications?: Resolver<Array<ResolversTypes['Notification']>, ParentType, ContextType>;
   myProperties?: Resolver<Array<ResolversTypes['Property']>, ParentType, ContextType>;
+  myRecentActivity?: Resolver<
+    Array<ResolversTypes['ActivityItem']>,
+    ParentType,
+    ContextType,
+    Partial<QueryMyRecentActivityArgs>
+  >;
   myTenancies?: Resolver<Array<ResolversTypes['Application']>, ParentType, ContextType>;
   properties?: Resolver<
     Array<ResolversTypes['Property']>,
@@ -833,6 +918,8 @@ export type UserPreferencesResolvers<
 }>;
 
 export type Resolvers<ContextType = AuthContext> = ResolversObject<{
+  ActivityItem?: ActivityItemResolvers<ContextType>;
+  ActivityProperty?: ActivityPropertyResolvers<ContextType>;
   Application?: ApplicationResolvers<ContextType>;
   AuthPayload?: AuthPayloadResolvers<ContextType>;
   Comment?: CommentResolvers<ContextType>;

@@ -19,6 +19,7 @@ const applicationSchema = new Schema(
         'REJECTED',
         'INFORMATION_REQUESTED',
         'APPROVED_PENDING_SIGNATURE',
+        'CANCELLED',
       ],
       default: 'PENDING',
       required: true,
